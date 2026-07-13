@@ -53,7 +53,7 @@ Swagger: `GET /docs` · Sin autenticación, CORS abierto (fase demo).
 | `GET/POST /agentes/vigil/...` | Proxy → Vigil :8000 (concursos, ejecuciones, ICS, pliegos) | 🔨 |
 | `POST /agentes/garum/ciclos` | Lanza un ciclo de Garum en segundo plano (202 + `id_ciclo`); 409 si ya hay uno en marcha | 🔨 |
 | `GET /agentes/garum/ciclos/{id_ciclo}` | Estado del ciclo: `en_marcha` / `terminado` (con `resultado`) / `error` | 🔨 |
-| `/agentes/alertas/...` | 501 `AGENTE_PENDIENTE` hasta que llegue el definitivo | ⚠️ |
+| `/agentes/alertas/...` | Alias → Vigil (la ruta que reservó la v4; confirmado 13/07 que Vigil ES el agente de alertas) | 🔨 |
 | `POST /autocompletar` · `/chat` · `/chat/reset` | Alias de compatibilidad v4 en la raíz | 🔨 |
 
 **Enchufar un agente definitivo cuando llegue:** registrar su URL en `AGENTES` de
@@ -142,11 +142,12 @@ agentes no pueden escribir; la escritura real seguirá siendo del backend Expres
 
 ---
 
-## 4. Agentes pendientes de recibir ⚠️
+## 4. Agentes pendientes de recibir
 
-| Agente | Ruta reservada en el gateway | Estado |
-|---|---|---|
-| Alertas (Roberto) | `/agentes/alertas/...` | ⚠️ 501; pendiente de definir desde v4 |
+**Ninguno** desde el 13/07: confirmado que el "agente de alertas (Roberto)" que la v4 dejó
+pendiente es **Vigil** con su nombre definitivo (su README: *"agente de alertas de licitaciones"*).
+`/agentes/alertas/...` queda como alias de Vigil por continuidad. **Los 6 agentes del sistema
+están recibidos e integrados**: Lumen, Operis, Jano, Vigil, Hermes y Garum.
 
 ---
 
@@ -163,6 +164,6 @@ agentes no pueden escribir; la escritura real seguirá siendo del backend Expres
 
 | Versión | Fecha | Qué |
 |---|---|---|
-| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). |
+| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). Confirmado que Vigil es el agente de alertas de la v4 → sin pendientes: mapa completo. |
 | v4 | 2026-07-10 | Backend unificado de data :5003 en-proceso (Lumen+Operis). |
 | v3 | 2026-07-09 | Primer inventario real (backend Express, Lumen :5001, Operis :5002 V1). |

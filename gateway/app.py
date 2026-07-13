@@ -59,10 +59,9 @@ AGENTES = {
 BACKEND_AGENTES = {"base": "http://127.0.0.1:5004", "health": "/"}
 
 # Agentes PENDIENTES de recibir en versión definitiva: responden 501 con
-# un mensaje claro (salvo los que tienen stub con forma real, más abajo).
-STUBS_PENDIENTES = {
-    "alertas": "Agente de alertas — pendiente de definir (ver endpoints_v4.md).",
-}
+# un mensaje claro. Vacío desde el 13/07: confirmado que Vigil ES el agente
+# de alertas de la v4 (con su nombre definitivo) — los 6 agentes están.
+STUBS_PENDIENTES: dict[str, str] = {}
 
 # Garum (gestor de correos) no es un servidor: se ejecuta por CICLOS
 # (lee Gmail vía Composio, clasifica y deja borradores; nunca envía).
@@ -150,6 +149,13 @@ async def alias_chat_reset(request: Request):
 @app.post("/autocompletar")
 async def alias_autocompletar(request: Request):
     return await proxy_agente("operis", "autocompletar", request)
+
+
+# la v4 reservó /agentes/alertas/... para el agente de Roberto; confirmado
+# que ese agente es Vigil con su nombre final, la ruta queda como alias
+@app.api_route("/agentes/alertas/{ruta:path}", methods=["GET", "POST"])
+async def alias_alertas(ruta: str, request: Request):
+    return await proxy_agente("vigil", ruta, request)
 
 
 # ---------------------------------------------------------------------
