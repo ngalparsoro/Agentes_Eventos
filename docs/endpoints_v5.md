@@ -160,10 +160,206 @@ están recibidos e integrados**: Lumen, Operis, Jano, Vigil, Hermes y Garum.
   `--con-hermes` añade el bot; `--parar` detiene todo.
 - `./comprobar_salud.sh` es el smoke test: ✓/✗ por servicio + salud agregada del gateway.
 
-## 6. Registro de cambios
+## 6. Despliegue y ejemplos de petición/respuesta
+
+### URLs base (mismas rutas en las dos)
+
+| Entorno | URL base | Notas |
+|---|---|---|
+| Local | `http://localhost:5003` | `./arrancar_todo.sh` |
+| Nube (Render) | `https://backstage-agentes.onrender.com` ¹ | contenedor Docker único (`render.yaml`); plan free: **se duerme a los 15 min** — despertar con `GET /salud` (~1 min) antes de la demo |
+
+¹ Confirmar el sufijo exacto al crear el Blueprint (Render añade uno si el nombre está cogido).
+Limitaciones de la imagen en nube: Vigil sirve su **histórico** pero no el scrape en vivo (sin
+navegadores Playwright); Hermes va apagado por defecto (`ARRANCAR_HERMES`).
+
+Todos los ejemplos siguientes son **capturas reales** del sistema (13/07/2026), abreviadas con `…`.
+
+### Lumen — `POST /agentes/lumen/chat`
+
+Entrada:
+```json
+{ "pregunta": "¿Qué eventos hay en Bilbao?", "sesion_id": "demo-doc-001" }
+```
+(`sesion_id` opcional: si no se manda, Lumen genera uno — **guardarlo y reenviarlo** para mantener la memoria.)
+
+Salida:
+```json
+{
+  "sesion_id": "demo-doc-001",
+  "resumen": "Hay N evento(s) en Bilbao: …",
+  "datos_detectados": {
+    "eventos": [
+      { "id_evento": "019f5b21-f482-78ef-b57a-8cfc9772fb40", "nombre_evento": "Tech Summit 2026" }
+    ]
+  },
+  "bloqueos_detectados": [],
+  "requiere_validacion_humana": false,
+  "nivel_riesgo": "bajo",
+  "id_evento_actual": null,
+  "errores": []
+}
+```
+
+### Operis — `POST /agentes/operis/autocompletar`
+
+Entrada (`id_evento` y `texto_briefing` obligatorios):
+```json
+{
+  "id_evento": "019f5b21-f482-78ef-b57a-8cfc9772fb40",
+  "texto_briefing": "Evento para 200 personas en Bilbao el 20 de octubre…",
+  "bloques_a_actualizar": ["evento", "nota_bene"]
+}
+```
+
+Salida (200 si `ok`, 422 si el briefing no se pudo procesar — mismo cuerpo):
+```json
+{
+  "ok": true,
+  "agente": "agente_operis",
+  "resumen": "…",
+  "datos_detectados": {
+    "evento":  { "nombre_evento": "…", "ciudad": "…", "fecha_inicio": "…", "fecha_fin": "…", "numero_personas": "…", "tipo_evento": "…", "estado": "…", "lugar_confirmado": "…", "nota": "…" },
+    "cliente": { "cliente": "…", "empresa": "…", "email": "…", "…": "…" },
+    "ponentes": [],
+    "nota_bene": { "cabecera": { "…": "…" }, "presupuesto_servicios": { "…": "…" }, "informacion_adicional": { "…": "…" } },
+    "_validacion": { "campos_pendientes": ["…"], "porcentaje_completado": 60 }
+  },
+  "bloqueos_detectados": [],
+  "requiere_validacion_humana": true,
+  "errores": [],
+  "trazas": { "fuentes_consultadas": ["motor:llm"], "modo": "propuesta", "timestamp": "…" }
+}
+```
+⚠️ `requiere_validacion_humana` es `true` **siempre**: el front pinta los campos como propuesta editable, nunca los guarda solo.
+
+### Jano — `POST /agentes/jano/buscar`
+
+Entrada (los campos del formulario):
+```json
+{
+  "nombre_ponente": "Elena Vidal",
+  "email_ponente": "elena.vidal@example.com",
+  "nombre_evento": "Congreso Gastronómico Euskadi 2026",
+  "ciudad_evento": "San Sebastián",
+  "fecha_inicio": "2026-09-15",
+  "fecha_fin": "2026-09-17",
+  "ciudad_origen": "Madrid",
+  "personas": 1,
+  "preferencias": "cerca del recinto",
+  "necesita_hotel": true,
+  "necesita_viaje": true
+}
+```
+
+Salida (los enlaces PDF se descargan contra la misma base, vía gateway: `/agentes/jano/informes/...`):
+```json
+{
+  "propuesta": {
+    "id": "e134a4d53fc0484c93c7e0bde828f0fd",
+    "evento": { "nombre": "Congreso Gastronómico Euskadi 2026", "ciudad": "San Sebastián", "fecha_inicio": "2026-09-15", "fecha_fin": "2026-09-17" },
+    "fecha_llegada": "2026-09-14",
+    "fecha_salida": "2026-09-18",
+    "hoteles": [
+      { "nombre": "Gran Hotel Central San Sebastián", "estrellas": 4, "precio_noche": 215.0, "precio_total": 860.0, "noches": 4, "distancia_recinto_km": 0.8, "valoracion": 8.2, "enlace_reserva": "https://www.booking.com/…", "moneda": "EUR" }
+    ],
+    "trenes": [ { "…": "…" } ],
+    "vuelos": [ { "…": "…" } ],
+    "taxis":  [ { "…": "…" } ],
+    "recomendacion": "…",
+    "coste_estimado": 940.0,
+    "resumen": "…"
+  },
+  "pdf_ponente": "/informes/e134a4d53fc0484c93c7e0bde828f0fd/ponente.pdf",
+  "pdf_mitumi": "/informes/e134a4d53fc0484c93c7e0bde828f0fd/mitumi.pdf"
+}
+```
+
+### Vigil — `GET /agentes/vigil/concursos?limite=1&en_plazo=true`
+
+(Filtros query: `q`, `diputacion`, `urgencia`, `en_plazo`, `relevante`, `limite`, `offset`.)
+
+Salida:
+```json
+{
+  "total": 1,
+  "concursos": [
+    {
+      "id_expediente": "EJEMPLO-2026-0000001",
+      "diputacion": "Araba",
+      "organo_convocante": "Diputación Foral de Álava",
+      "objeto": "Servicio de organización integral y secretaría técnica del Congreso…",
+      "importe": "45.000,00",
+      "plazo_presentacion": "14/07/2026 23:59:00",
+      "plazo_iso": "2026-07-14T23:59:00",
+      "etiquetas": ["Institucional", "Sostenibilidad"],
+      "motivo": "Es un servicio de organización de eventos que encaja con vuestro perfil…",
+      "enlace_pliego": "https://…",
+      "campos_no_verificables": []
+    }
+  ]
+}
+```
+Extras por expediente: `GET …/concursos/{id}/calendario.ics` y `GET …/concursos/{id}/pliego.pdf`.
+`POST /agentes/vigil/ejecuciones` → `202 {"id", "estado": "en_curso", …}` (409 si ya hay una en curso) y `GET /agentes/vigil/ejecuciones/{id}` para el progreso. **Solo en local** (la imagen de nube no lleva navegadores).
+
+### Garum — `POST /agentes/garum/ciclos` (sin body)
+
+Salida inmediata (202):
+```json
+{ "id_ciclo": "858586c7cf95", "estado": "en_marcha", "consultar": "/agentes/garum/ciclos/858586c7cf95" }
+```
+
+`GET /agentes/garum/ciclos/{id_ciclo}` cuando termina:
+```json
+{
+  "id_ciclo": "858586c7cf95",
+  "estado": "terminado",
+  "lanzado_en": "2026-07-13T13:14:38",
+  "terminado_en": "2026-07-13T13:14:39",
+  "resultado": { "ok": true, "estado": "…", "resultados": ["…"] }
+}
+```
+(409 `CICLO_EN_MARCHA` si se lanza otro sin terminar el anterior.)
+
+### Backend de agentes — `GET :5004/api/eventos/{id_evento}/ponentes`
+
+(Consumo interno de agentes — el front usa el backend Express :3000; se documenta por completitud.)
+```json
+{
+  "ok": true,
+  "data": [
+    {
+      "id": "019f5b21-f2e7-7ff6-9ffb-0fcdd4bd6e60",
+      "nombre_ponente": "Carlos Barrabés",
+      "email": "c.barrabes@innovacion.es",
+      "empresa": "Barrabés",
+      "cargo": "CEO",
+      "ponencia": {
+        "tipo_ponencia": "Keynote",
+        "ponente_estado": "Activo",
+        "nombre_hotel": "Hotel NH Europa",
+        "horario_ida_transporte": "2026-09-09T06:30:00+00:00",
+        "horario_ponencia": "2026-09-10T07:00:00+00:00"
+      }
+    }
+  ]
+}
+```
+
+### Errores (todos los servicios del gateway)
+
+```json
+{ "error": true, "codigo": "AGENTE_CAIDO", "mensaje": "El agente 'jano' no responde en …. ¿Está arrancado?" }
+```
+Códigos del gateway: `AGENTE_CAIDO` (502) · `RUTA_NO_ENCONTRADA` (404) · `CICLO_EN_MARCHA` (409).
+Los agentes usan el mismo sobre; Jano/Vigil añaden `"detail"` por compatibilidad con sus webs de demo.
+El backend :5004 responde `{"ok": false, "message": "Base de datos no disponible", …}` con **503** si Neon no está accesible.
+
+## 7. Registro de cambios
 
 | Versión | Fecha | Qué |
 |---|---|---|
-| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). Confirmado que Vigil es el agente de alertas de la v4 → sin pendientes: mapa completo. Homogeneización posterior: `GET /health` uniforme en TODOS los servicios, errores siempre en JSON `{"error":true,codigo,mensaje}` (Jano/Vigil añaden `detail` por compatibilidad), Operis pasa a 127.0.0.1, Vigil devuelve 409 si ya hay ejecución en curso, backend responde 503 (no listas vacías) con la BBDD caída y usa pool de conexiones. |
+| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). Confirmado que Vigil es el agente de alertas de la v4 → sin pendientes: mapa completo. Homogeneización posterior: `GET /health` uniforme en TODOS los servicios, errores siempre en JSON `{"error":true,codigo,mensaje}` (Jano/Vigil añaden `detail` por compatibilidad), Operis pasa a 127.0.0.1, Vigil devuelve 409 si ya hay ejecución en curso, backend responde 503 (no listas vacías) con la BBDD caída y usa pool de conexiones. Añadida §6: URLs de despliegue (local + Render) y ejemplos reales de entrada/salida por endpoint. |
 | v4 | 2026-07-10 | Backend unificado de data :5003 en-proceso (Lumen+Operis). |
 | v3 | 2026-07-09 | Primer inventario real (backend Express, Lumen :5001, Operis :5002 V1). |
