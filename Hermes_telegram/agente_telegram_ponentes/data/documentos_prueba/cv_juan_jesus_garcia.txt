@@ -1,0 +1,6 @@
+CV DE PRUEBA
+
+Nombre: Juan Jesús García
+Cargo: Director de Planta
+Sector: Industria e Inteligencia Artificial
+Documento generado para probar el agente Telegram Ponentes.

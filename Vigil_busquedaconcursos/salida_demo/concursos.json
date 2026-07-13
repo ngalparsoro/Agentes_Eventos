@@ -1,0 +1,105 @@
+{
+  "generado_en": "2026-07-13T10:09:33.359628",
+  "fuente": "KontratazioA — Diputaciones Forales (Araba, Gipuzkoa, Bizkaia)",
+  "total": 4,
+  "concursos": [
+    {
+      "id_expediente": "EJEMPLO-2026-0000001",
+      "titulo": "Servicio de organización integral y secretaría técnica del Congreso Institucional sobre Transición Energética 2026, incluyendo gestión del espacio, ponentes, catering y modalidad híbrida.",
+      "organismo": "Diputación Foral de Álava",
+      "diputacion": "Araba",
+      "fecha_publicacion": "05/07/2026",
+      "fecha_ultima_publicacion": "05/07/2026",
+      "plazo_presentacion": "14/07/2026 23:59:00",
+      "plazo_iso": "2026-07-14T23:59:00",
+      "importe": "45.000,00",
+      "enlace_pliego": "https://www.contratacion.euskadi.eus/ejemplo/congreso-transicion-energetica",
+      "urgencia": {
+        "nivel": "alta",
+        "dias_habiles_restantes": 1,
+        "etiqueta": "URGENCIA ALTA · 1 día hábil"
+      },
+      "etiquetas": [
+        "Institucional",
+        "Sostenibilidad"
+      ],
+      "es_modificacion": false,
+      "motivo": "Es un servicio de organización de eventos que encaja con vuestro perfil (gestión integral, producción y secretaría técnica). [demo]",
+      "campos_no_verificables": [],
+      "archivo_ics": "ics/EJEMPLO_2026_0000001.ics"
+    },
+    {
+      "id_expediente": "EJEMPLO-2026-0000004",
+      "titulo": "Diseño y ejecución de una serie de showcookings y catas de producto local para la campaña de promoción gastronómica del territorio, con degustaciones abiertas al público.",
+      "organismo": "Diputación Foral de Álava",
+      "diputacion": "Araba",
+      "fecha_publicacion": "06/07/2026",
+      "fecha_ultima_publicacion": "06/07/2026",
+      "plazo_presentacion": "22/07/2026 23:59:00",
+      "plazo_iso": "2026-07-22T23:59:00",
+      "importe": "28.000,00",
+      "enlace_pliego": "https://www.contratacion.euskadi.eus/ejemplo/showcooking-gastronomia",
+      "urgencia": {
+        "nivel": "media",
+        "dias_habiles_restantes": 7,
+        "etiqueta": "URGENCIA MEDIA · 7 días hábiles"
+      },
+      "etiquetas": [
+        "Gastronomía"
+      ],
+      "es_modificacion": false,
+      "motivo": "Es un servicio de organización de eventos que encaja con vuestro perfil (gestión integral, producción y secretaría técnica). [demo]",
+      "campos_no_verificables": [],
+      "archivo_ics": "ics/EJEMPLO_2026_0000004.ics"
+    },
+    {
+      "id_expediente": "EJEMPLO-2026-0000005",
+      "titulo": "Diseño y dinamización de una jornada de participación ciudadana y talleres creativos sobre movilidad sostenible, con facilitación gráfica.",
+      "organismo": "Diputación Foral de Gipuzkoa",
+      "diputacion": "Gipuzkoa",
+      "fecha_publicacion": "07/07/2026",
+      "fecha_ultima_publicacion": "07/07/2026",
+      "plazo_presentacion": "12/08/2026 23:59:00",
+      "plazo_iso": "2026-08-12T23:59:00",
+      "importe": "18.500,00",
+      "enlace_pliego": "https://www.contratacion.euskadi.eus/ejemplo/jornada-participacion",
+      "urgencia": {
+        "nivel": "baja",
+        "dias_habiles_restantes": 22,
+        "etiqueta": "URGENCIA BAJA · 22 días hábiles"
+      },
+      "etiquetas": [
+        "Formación",
+        "Sostenibilidad"
+      ],
+      "es_modificacion": false,
+      "motivo": "Es un servicio de organización de eventos que encaja con vuestro perfil (gestión integral, producción y secretaría técnica). [demo]",
+      "campos_no_verificables": [],
+      "archivo_ics": "ics/EJEMPLO_2026_0000005.ics"
+    },
+    {
+      "id_expediente": "EJEMPLO-2026-0000006",
+      "titulo": "Organización de la gala de entrega de premios del comercio local, con secretaría técnica, protocolo y producción del acto.",
+      "organismo": "Diputación Foral de Álava",
+      "diputacion": "Araba",
+      "fecha_publicacion": "20/06/2026",
+      "fecha_ultima_publicacion": "08/07/2026",
+      "plazo_presentacion": "25/08/2026 23:59:00",
+      "plazo_iso": "2026-08-25T23:59:00",
+      "importe": "22.000,00",
+      "enlace_pliego": "https://www.contratacion.euskadi.eus/ejemplo/gala-premios-comercio",
+      "urgencia": {
+        "nivel": "baja",
+        "dias_habiles_restantes": 31,
+        "etiqueta": "URGENCIA BAJA · 31 días hábiles"
+      },
+      "etiquetas": [
+        "Institucional"
+      ],
+      "es_modificacion": false,
+      "motivo": "Es un servicio de organización de eventos que encaja con vuestro perfil (gestión integral, producción y secretaría técnica). [demo]",
+      "campos_no_verificables": [],
+      "archivo_ics": "ics/EJEMPLO_2026_0000006.ics"
+    }
+  ]
+}

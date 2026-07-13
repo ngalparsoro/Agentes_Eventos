@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Vigil//Agente de licitaciones//ES
+BEGIN:VEVENT
+UID:EJEMPLO-2026-0000006@vigil
+DTSTAMP:20260713T100933
+DTSTART:20260825T235900
+DTEND:20260825T235900
+SUMMARY:Fecha límite: Organización de la gala de entrega de premios del comercio local\, con secretaría técnica\, protocolo y producción del acto.
+DESCRIPTION:Órgano convocante: Diputación Foral de Álava\nEnlace al pliego: https://www.contratacion.euskadi.eus/ejemplo/gala-premios-comercio
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio: fecha límite de licitación
+END:VALARM
+END:VEVENT
+END:VCALENDAR

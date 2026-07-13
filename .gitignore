@@ -12,5 +12,8 @@ venv/
 # macOS
 .DS_Store
 
+# logs de arrancar_todo.sh
+.logs/
+
 # Backup del git interno de desafio-back-agentes
 .git.disabled/

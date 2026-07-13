@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Vigil//Agente de licitaciones//ES
+BEGIN:VEVENT
+UID:EJEMPLO-2026-0000001@vigil
+DTSTAMP:20260713T100933
+DTSTART:20260714T235900
+DTEND:20260714T235900
+SUMMARY:Fecha límite: Servicio de organización integral y secretaría técnica del Congreso Institucional sobre Transición Energética 2026\, incluyendo gestión del espacio\, ponentes\, catering y modalidad híbrida.
+DESCRIPTION:Órgano convocante: Diputación Foral de Álava\nEnlace al pliego: https://www.contratacion.euskadi.eus/ejemplo/congreso-transicion-energetica
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio: fecha límite de licitación
+END:VALARM
+END:VEVENT
+END:VCALENDAR

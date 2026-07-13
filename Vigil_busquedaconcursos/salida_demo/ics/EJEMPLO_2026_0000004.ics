@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Vigil//Agente de licitaciones//ES
+BEGIN:VEVENT
+UID:EJEMPLO-2026-0000004@vigil
+DTSTAMP:20260713T100933
+DTSTART:20260722T235900
+DTEND:20260722T235900
+SUMMARY:Fecha límite: Diseño y ejecución de una serie de showcookings y catas de producto local para la campaña de promoción gastronómica del territorio\, con degustaciones abiertas al público.
+DESCRIPTION:Órgano convocante: Diputación Foral de Álava\nEnlace al pliego: https://www.contratacion.euskadi.eus/ejemplo/showcooking-gastronomia
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio: fecha límite de licitación
+END:VALARM
+END:VEVENT
+END:VCALENDAR

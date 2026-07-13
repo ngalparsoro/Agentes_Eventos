@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen (Agente 04 · Copilot) — Cómo funciona, explicado desde cero</title>
+<style>
+  :root{
+    --ink:#1f2328; --soft:#57606a; --line:#d0d7de; --bg:#ffffff;
+    --card:#f5f6f8; --accent:#2563eb; --accent-soft:#eaf1ff;
+    --warn:#9a6700; --warn-soft:#fff8e6; --danger:#b3261e; --danger-soft:#fdecea;
+    --ok:#1a7f37; --ok-soft:#e8f5ec; --mono:ui-monospace,Menlo,Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; font-size:15.5px;
+  }
+  .wrap{max-width:820px; margin:0 auto; padding:40px 34px 64px;}
+  h1{font-size:26px; line-height:1.2; margin:0 0 6px;}
+  h2{font-size:20px; margin:38px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--line);}
+  h3{font-size:16.5px; margin:22px 0 6px;}
+  p{margin:9px 0;}
+  code{font-family:var(--mono); font-size:0.9em; background:var(--card); padding:1px 5px; border-radius:5px; border:1px solid var(--line);}
+  .lead{font-size:16.5px; color:var(--ink);}
+  .meta{color:var(--soft); font-size:13px; margin:2px 0 0;}
+  .sub{color:var(--soft); font-size:15px; margin-top:2px;}
+  .callout{border:1px solid var(--line); border-left:5px solid var(--accent); background:var(--accent-soft);
+    border-radius:8px; padding:11px 15px; margin:14px 0;}
+  .callout.warn{border-left-color:var(--warn); background:var(--warn-soft);}
+  .callout.danger{border-left-color:var(--danger); background:var(--danger-soft);}
+  .callout.ok{border-left-color:var(--ok); background:var(--ok-soft);}
+  .callout .tag{font-weight:700; font-size:13px; letter-spacing:.02em; display:block; margin-bottom:3px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:14px;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--card); font-weight:700;}
+  td.f{font-family:var(--mono); font-size:12.8px; color:var(--accent); white-space:nowrap;}
+  .files li{margin:5px 0;}
+  .files code{color:var(--accent);}
+  .diagram{border:1px solid var(--line); border-radius:10px; padding:10px; margin:14px 0; background:#fff;}
+  .glo dt{font-weight:700; margin-top:11px;}
+  .glo dd{margin:2px 0 0; color:var(--ink);}
+  .toc{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 18px;}
+  .toc ol{margin:6px 0; padding-left:22px;}
+  .toc a{color:var(--accent); text-decoration:none;}
+  .pill{display:inline-block; font-family:var(--mono); font-size:12px; background:var(--card);
+    border:1px solid var(--line); border-radius:6px; padding:1px 6px; color:var(--accent);}
+  hr{border:none; border-top:1px solid var(--line); margin:30px 0;}
+  .footer{color:var(--soft); font-size:12.5px; margin-top:30px;}
+  @page{ size:A4; margin:16mm 14mm; }
+  @media print{
+    body{font-size:12px;} .wrap{padding:0; max-width:none;}
+    h2{page-break-after:avoid;} h3{page-break-after:avoid;}
+    table,.callout,.diagram{page-break-inside:avoid;}
+    a{color:var(--ink); text-decoration:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Lumen (Agente 04 · Copilot)</h1>
+  <p class="sub">Cómo funciona el agente, explicado desde cero — esquema de trabajo, esquema de la base de datos y glosario.</p>
+  <p class="meta">Proyecto Ágora · Mitumi &nbsp;·&nbsp; Documento de referencia para personas que empiezan &nbsp;·&nbsp; Actualizado: 10/07/2026</p>
+
+  <div class="callout">
+    <span class="tag">💡 Para quién es este documento</span>
+    Está escrito para alguien que <strong>no ha programado</strong> este proyecto (o no ha programado nunca). No hace falta saber nada previo: cada término técnico se explica la primera vez que aparece, y al final hay un glosario. Si solo quieres una cosa: <strong>las consultas a la base de datos están en el archivo <code>integrations/db_backend.py</code></strong> (lo explicamos en la sección 6).
+  </div>
+
+  <div class="toc">
+    <strong>Contenido</strong>
+    <ol>
+      <li><a href="#q1">Qué es Lumen, en una frase</a></li>
+      <li><a href="#q2">Las 6 palabras que conviene entender primero</a></li>
+      <li><a href="#q3">El recorrido de una pregunta (diagrama)</a></li>
+      <li><a href="#q4">La regla de oro: el LLM nunca toca la base de datos</a></li>
+      <li><a href="#q5">Mapa de archivos: qué hace cada uno</a></li>
+      <li><a href="#q6">Dónde están las consultas a la base de datos</a></li>
+      <li><a href="#q7">El esquema de la base de datos (tablas y campos)</a></li>
+      <li><a href="#q8">Configuración y seguridad</a></li>
+      <li><a href="#q9">Qué pasa cuando algo falla</a></li>
+      <li><a href="#q10">Glosario completo</a></li>
+    </ol>
+  </div>
+
+  <h2 id="q1">1 · Qué es Lumen, en una frase</h2>
+  <p class="lead">Lumen es un <strong>asistente que responde preguntas en lenguaje natural sobre los datos de la plataforma Ágora</strong> (eventos, clientes, presupuestos, ponentes, salas…), <strong>leyéndolos de una base de datos, sin cambiar nunca nada</strong>.</p>
+  <p>La analogía más útil: imagina un <strong>bibliotecario</strong> al que le preguntas de viva voz, mira sus fichas y te contesta. No reescribe los libros, no tira nada, no firma nada por ti. Solo <em>consulta</em> y <em>explica</em>. Lumen es exactamente eso: un agente <strong>de solo lectura</strong>.</p>
+
+  <div class="callout ok">
+    <span class="tag">✔ Lo que Lumen SÍ hace</span>
+    Entender tu pregunta escrita, buscar el dato en la base de datos y devolvértelo redactado en español claro, diciéndote de qué tabla salió si lo pides.
+  </div>
+  <div class="callout danger">
+    <span class="tag">✘ Lo que Lumen NUNCA hace</span>
+    Modificar, borrar, aprobar o crear datos; enviar correos o mensajes; tocar la tabla de <code>usuarios</code> o contraseñas. Estas prohibiciones están escritas en el código, no son solo una buena intención.
+  </div>
+
+  <h2 id="q2">2 · Las 6 palabras que conviene entender primero</h2>
+  <table>
+    <tr><th>Palabra</th><th>Qué significa aquí (en simple)</th></tr>
+    <tr><td><strong>Base de datos</strong></td><td>Un almacén ordenado de información, como un conjunto de hojas de cálculo (aquí se llaman <em>tablas</em>): una de eventos, otra de clientes, otra de presupuestos…</td></tr>
+    <tr><td><strong>Postgres / Neon</strong></td><td>Postgres es el <em>tipo</em> de base de datos que usamos. Neon es la empresa que la aloja en internet. Juntos: "la base de datos real, en la nube".</td></tr>
+    <tr><td><strong>LLM</strong></td><td>"Modelo de lenguaje": la inteligencia artificial que entiende y redacta texto (aquí, el modelo <em>Llama&nbsp;3.3</em> servido por <em>Groq</em>). Sirve para <em>escribir la respuesta</em>, no para buscar datos.</td></tr>
+    <tr><td><strong>API</strong></td><td>Una "puerta" por la que un programa habla con otro. Lumen tiene una API (el archivo <code>servidor.py</code>) para que una página web pueda preguntarle.</td></tr>
+    <tr><td><code>.env</code></td><td>Un archivo de configuración con los <em>secretos</em> (la clave del LLM y la contraseña de la base de datos). No se sube a internet.</td></tr>
+    <tr><td><strong>Consulta / SQL</strong></td><td>Una "pregunta" formal a la base de datos, escrita en un lenguaje llamado SQL (p. ej. <code>SELECT * FROM eventos</code> = "dame todos los eventos"). La escribe el código, no el LLM.</td></tr>
+  </table>
+
+  <h2 id="q3">3 · El recorrido de una pregunta (diagrama)</h2>
+  <p>Cuando escribes una pregunta, atraviesa estos pasos. En cada caja se indica <strong>qué archivo</strong> se encarga de ese paso.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 662" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama del flujo de trabajo del agente Lumen" width="100%" font-family="ui-sans-serif, system-ui, sans-serif">
+    <defs>
+      <marker id="ah" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+        <path d="M0,0 L6.5,3 L0,6 Z" fill="#8c959f"/>
+      </marker>
+    </defs>
+    <style>
+      .box{fill:#f5f6f8;stroke:#d0d7de;stroke-width:1.5;}
+      .hl{fill:#eaf1ff;stroke:#2563eb;stroke-width:2.6;}
+      .llm{fill:#f5f6f8;stroke:#c4ccd4;stroke-width:1.5;stroke-dasharray:5 4;}
+      .t{fill:#1f2328;font-size:14.5px;font-weight:600;}
+      .n{fill:#57606a;font-size:11.5px;}
+      .f{fill:#2563eb;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+      .fb{fill:#2563eb;font-size:12px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;}
+      .ar{stroke:#8c959f;stroke-width:1.6;fill:none;marker-end:url(#ah);}
+      .lg{fill:#57606a;font-size:11.5px;}
+    </style>
+    <rect class="box" x="100" y="18" width="560" height="54" rx="10"/>
+    <text class="t" x="118" y="41">1 · Usuario escribe la pregunta (texto)</text>
+    <text class="f" x="118" y="60">main.py  ·  servidor.py (API HTTP)</text>
+    <path class="ar" d="M380,72 L380,92"/>
+    <rect class="box" x="100" y="94" width="560" height="54" rx="10"/>
+    <text class="t" x="118" y="117">2 · Resuelve a qué evento se refiere</text>
+    <text class="f" x="118" y="136">src/memoria.py   (UUID · nombre · memoria)</text>
+    <path class="ar" d="M380,148 L380,168"/>
+    <rect class="box" x="100" y="170" width="560" height="54" rx="10"/>
+    <text class="t" x="118" y="193">3 · Entrada al agente · ejecutar_agente(payload)</text>
+    <text class="f" x="118" y="212">src/agente.py  &#8594;  src/nucleo.py</text>
+    <path class="ar" d="M380,224 L380,244"/>
+    <rect class="box" x="100" y="246" width="560" height="66" rx="10"/>
+    <text class="t" x="118" y="268">4 · Clasifica y aplica guardarraíles (en código, sin LLM)</text>
+    <text class="n" x="118" y="286">bloquea la tabla «usuarios» y las escrituras ANTES de que entre el LLM</text>
+    <text class="f" x="118" y="304">src/nucleo.py  ·  config/permisos.py</text>
+    <path class="ar" d="M380,312 L380,326 L220,326 L220,352"/>
+    <path class="ar" d="M380,326 L541,326 L541,352"/>
+    <rect class="hl" x="70" y="354" width="300" height="94" rx="10"/>
+    <text class="t" x="86" y="377">5 · Consulta de datos</text>
+    <text class="n" x="86" y="394">SELECT solo lectura</text>
+    <text class="f" x="86" y="414">src/lectura_datos.py</text>
+    <text class="fb" x="86" y="432">integrations/db_backend.py</text>
+    <text class="n" x="86" y="446">&#8592; el SQL vive aquí  &#8594;  Postgres / Neon</text>
+    <rect class="llm" x="390" y="354" width="300" height="94" rx="10"/>
+    <text class="t" x="406" y="377">5&#8242; · Redacta la respuesta</text>
+    <text class="n" x="406" y="394">solo preguntas libres · a veces</text>
+    <text class="f" x="406" y="414">src/llm.py  +  prompts/*.md</text>
+    <text class="n" x="406" y="436">el LLM NO toca la BD; solo</text>
+    <text class="n" x="406" y="450">convierte datos ya traídos en texto</text>
+    <path class="ar" d="M220,448 L220,470 L380,470 L380,486"/>
+    <path class="ar" d="M541,448 L541,470 L380,470"/>
+    <rect class="box" x="100" y="488" width="560" height="54" rx="10"/>
+    <text class="t" x="118" y="511">6 · Audita la salida (anti-fuga / anti-escritura)</text>
+    <text class="f" x="118" y="530">src/validaciones.py</text>
+    <path class="ar" d="M380,542 L380,562"/>
+    <rect class="box" x="100" y="564" width="560" height="54" rx="10"/>
+    <text class="t" x="118" y="587">7 · Respuesta JSON  &#8594;  Usuario</text>
+    <text class="f" x="118" y="606">main.py  ·  servidor.py</text>
+    <rect x="100" y="634" width="20" height="12" rx="3" fill="none" stroke="#2563eb" stroke-width="2.4"/>
+    <text class="lg" x="128" y="644">Borde azul = ruta hasta la base de datos: aquí están las consultas SQL.</text>
+  </svg>
+  </div>
+
+  <h3>El mismo recorrido, paso a paso</h3>
+  <table>
+    <tr><th>Paso</th><th>Qué ocurre</th><th>Archivo</th><th>Nota para principiante</th></tr>
+    <tr><td>1</td><td>Escribes tu pregunta en texto.</td><td class="f">main.py<br>servidor.py</td><td><code>main.py</code> es para probar desde la consola (terminal). <code>servidor.py</code> es la API para que una web te hable.</td></tr>
+    <tr><td>2</td><td>Se decide <em>de qué evento</em> hablas.</td><td class="f">src/memoria.py</td><td>Como nadie escribe códigos largos a mano, entiende el <em>nombre</em> del evento y recuerda el último del que hablabas ("¿y su presupuesto?").</td></tr>
+    <tr><td>3</td><td>Se entra al "cerebro" del agente.</td><td class="f">src/agente.py<br>→ src/nucleo.py</td><td><code>agente.py</code> es solo la puerta oficial de entrada; la lógica de verdad vive en <code>nucleo.py</code>.</td></tr>
+    <tr><td>4</td><td>Se clasifica la pregunta y se aplican las reglas de seguridad.</td><td class="f">src/nucleo.py<br>config/permisos.py</td><td>Aquí se <strong>bloquea</strong> cualquier intento de tocar <code>usuarios</code> o de escribir, <em>antes</em> de que la IA participe.</td></tr>
+    <tr><td>5</td><td>Se consultan los datos en la base de datos (solo lectura).</td><td class="f">src/lectura_datos.py<br><strong>integrations/db_backend.py</strong></td><td><strong>Aquí están las consultas SQL.</strong> <code>lectura_datos.py</code> decide qué pedir; <code>db_backend.py</code> lo pide de verdad a Postgres.</td></tr>
+    <tr><td>5′</td><td><em>Solo a veces:</em> la IA redacta la respuesta con esos datos.</td><td class="f">src/llm.py<br>prompts/*.md</td><td>Muchas preguntas (conteos, listados) ni usan la IA. Y si la IA falla, hay una respuesta de reserva automática.</td></tr>
+    <tr><td>6</td><td>Se revisa la respuesta antes de entregarla.</td><td class="f">src/validaciones.py</td><td>Última barrera: aunque la IA se equivocara, aquí se borra cualquier fuga sobre <code>usuarios</code> o cualquier acción de escritura.</td></tr>
+    <tr><td>7</td><td>Se devuelve la respuesta y la lees.</td><td class="f">main.py<br>servidor.py</td><td>La respuesta viaja como <em>JSON</em> (un formato de datos); tú solo ves el texto del campo <code>resumen</code>.</td></tr>
+  </table>
+
+  <h2 id="q4">4 · La regla de oro: el LLM nunca toca la base de datos</h2>
+  <p>Es el punto más importante y el que más se malentiende. Mucha gente imagina que la IA "traduce tu pregunta a una consulta y se la manda a la base de datos". <strong>Aquí no es así.</strong></p>
+  <ul>
+    <li>Quien decide qué consultar y quien escribe el SQL es <strong>código normal</strong> (<code>nucleo.py</code> + <code>lectura_datos.py</code> + <code>db_backend.py</code>), no la IA.</li>
+    <li>La IA (<code>llm.py</code>) entra <strong>al final</strong>, y solo para redactar en español unos datos que el código <em>ya trajo y ya filtró</em>.</li>
+    <li>La IA nunca ve la tabla <code>usuarios</code>: se excluye en el código antes de darle nada.</li>
+  </ul>
+  <div class="callout warn">
+    <span class="tag">💡 Por qué se diseñó así</span>
+    Por seguridad. Aunque alguien intentara "engañar" a la IA con una pregunta tramposa, o la IA se inventara algo, <strong>no puede saltarse los permisos de datos porque nunca habla con la base de datos</strong>. La IA es un "redactor", no un "consultor". Esa separación es la que hace que el agente sea fiable.
+  </div>
+
+  <h2 id="q5">5 · Mapa de archivos: qué hace cada uno</h2>
+  <p>Agrupados por su papel en el recorrido. Los "enlaces" entre ellos son las líneas <code>import</code> del código (si quieres, puedes buscarlas).</p>
+  <ul class="files">
+    <li><strong>Entrada (por dónde llega tu pregunta)</strong><br>
+      <code>main.py</code> — chat por consola y modo <code>--demo</code>. &nbsp; <code>servidor.py</code> — API web (Flask) para el frontend.</li>
+    <li><strong>Contrato de entrada</strong><br>
+      <code>src/agente.py</code> — la función oficial <code>ejecutar_agente(payload)</code>. No tiene lógica: solo reexporta desde <code>nucleo.py</code>.</li>
+    <li><strong>Cerebro (decide todo)</strong><br>
+      <code>src/nucleo.py</code> — clasifica la pregunta, aplica bloqueos y orquesta el resto. &nbsp; <code>src/memoria.py</code> — recuerda el evento del que hablas.</li>
+    <li><strong>Datos (habla con la base de datos)</strong><br>
+      <code>src/lectura_datos.py</code> — decide qué leer y comprueba permisos. &nbsp; <strong><code>integrations/db_backend.py</code> — el SQL y la conexión a Postgres.</strong></li>
+    <li><strong>Inteligencia artificial (redacta)</strong><br>
+      <code>src/llm.py</code> — cliente del modelo (Groq). &nbsp; <code>src/prompts.py</code> + <code>prompts/*.md</code> — las instrucciones que se le dan a la IA.</li>
+    <li><strong>Seguridad y contrato de salida</strong><br>
+      <code>src/validaciones.py</code> — audita la respuesta final. &nbsp; <code>config/permisos.py</code> — permisos fijos (nunca escribir, tabla <code>usuarios</code> prohibida). &nbsp; <code>src/schemas.py</code> — comprueba la forma de la entrada/salida.</li>
+    <li><strong>Configuración</strong><br>
+      <code>config/settings.py</code> — lee el archivo <code>.env</code>. &nbsp; <code>.env</code> — los secretos reales (clave de Groq, <code>DATABASE_URL</code>).</li>
+    <li><strong>Utilidad de comprobación</strong><br>
+      <code>integrations/verificar_conexion_bd.py</code> — script que comprueba que la base de datos real coincide con el esquema documentado.</li>
+  </ul>
+
+  <h2 id="q6">6 · Dónde están las consultas a la base de datos</h2>
+  <div class="callout">
+    <span class="tag">📍 Respuesta directa</span>
+    Las consultas SQL están en <span class="pill">integrations/db_backend.py</span>. Es el <strong>único</strong> archivo que abre la conexión a Postgres y escribe <code>SELECT</code>. Todo lo demás pasa por él para leer datos.
+  </div>
+  <p>Hay dos niveles, y conviene distinguirlos:</p>
+  <table>
+    <tr><th>Archivo</th><th>Qué contiene</th></tr>
+    <tr><td class="f">integrations/db_backend.py</td><td>El SQL real y la conexión. Dos funciones: <code>obtener_por_id(tabla, id)</code> → <code>SELECT * FROM &lt;tabla&gt; WHERE id = …</code>, y <code>listar(tabla)</code> → <code>SELECT * FROM &lt;tabla&gt;</code>. La conexión se abre en <strong>modo solo lectura</strong>, así que Postgres rechaza cualquier escritura aunque hubiera un error.</td></tr>
+    <tr><td class="f">src/lectura_datos.py</td><td>La capa de arriba: funciones con nombre de negocio (<code>resumen_evento</code>, <code>eventos_por_estado</code>, <code>contexto_completo_evento</code>…) que deciden <em>qué</em> pedir y comprueban los permisos (bloquea <code>usuarios</code>) antes de llamar a <code>db_backend.py</code>.</td></tr>
+  </table>
+  <div class="callout warn">
+    <span class="tag">💡 Detalle importante</span>
+    El nombre de la tabla en el SQL <strong>nunca</strong> viene de lo que tú escribas: sale siempre de una lista fija de tablas permitidas en <code>config/permisos.py</code>. Los valores (identificadores, filtros) van "parametrizados", que es la forma segura de evitar el ataque clásico de <em>inyección SQL</em>.
+  </div>
+
+  <h2 id="q7">7 · El esquema de la base de datos (tablas y campos)</h2>
+  <p>La base de datos tiene 8 tablas de negocio que Lumen puede leer, más 1 tabla (<code>usuarios</code>) totalmente prohibida. En cada tabla, el identificador único siempre se llama <code>id</code>. Los campos que empiezan por <code>id_</code> son "enlaces" a otra tabla (claves foráneas).</p>
+
+  <h3><code>eventos</code> — la tabla central</h3>
+  <table>
+    <tr><th>Campo</th><th>Qué es</th></tr>
+    <tr><td class="f">id</td><td>Identificador único del evento (un código tipo UUID).</td></tr>
+    <tr><td class="f">nombre_evento</td><td>Nombre del evento (lo que la gente escribe al preguntar).</td></tr>
+    <tr><td class="f">ciudad</td><td>Ciudad donde se celebra.</td></tr>
+    <tr><td class="f">lugar_confirmado</td><td>Si el lugar está confirmado o no.</td></tr>
+    <tr><td class="f">fecha_inicio · fecha_fin</td><td>Fechas de inicio y fin.</td></tr>
+    <tr><td class="f">numero_personas</td><td>Asistentes previstos.</td></tr>
+    <tr><td class="f">tipo_evento · nota</td><td>Tipo de evento y una nota libre.</td></tr>
+    <tr><td class="f">id_presupuesto</td><td>Enlace → tabla <code>presupuestos</code>.</td></tr>
+    <tr><td class="f">id_cliente</td><td>Enlace → tabla <code>clientes</code>.</td></tr>
+    <tr><td class="f">id_estado</td><td>Enlace → tabla <code>estados</code> (borrador, confirmado, cancelado…).</td></tr>
+    <tr><td class="f">id_sala</td><td>Enlace → tabla <code>salas</code>.</td></tr>
+    <tr><td class="f">id_ponencia</td><td>Enlace → tabla <code>ponencias</code> (y por ella, al ponente).</td></tr>
+  </table>
+
+  <h3>Las otras tablas de negocio</h3>
+  <table>
+    <tr><th>Tabla</th><th>Para qué sirve · campos principales</th></tr>
+    <tr><td class="f">clientes</td><td>Quién encarga el evento. <code>cliente</code>, <code>email</code>, <code>telefono</code>, <code>empresa</code>, <code>sector</code>, <code>ciudad</code>.</td></tr>
+    <tr><td class="f">presupuestos</td><td>El coste del evento, desglosado. <code>total</code>, <code>estado_presupuesto</code>, <code>fecha</code>, y bloques de <code>ubicacion</code>, <code>catering</code>, <code>audiovisuales</code>, <code>otros</code> (cada uno con su nota y su precio), más <code>observaciones</code>.</td></tr>
+    <tr><td class="f">salas</td><td>La sala concreta. <code>nombre_sala</code>, <code>tipo_sala</code>, <code>capacidad_max_sala</code>, <code>nota_sala</code>, <code>id_espacio</code> (→ espacio que la contiene).</td></tr>
+    <tr><td class="f">espacios</td><td>El edificio/recinto donde están las salas. <code>nombre_espacio</code>, <code>ciudad</code>, <code>direccion</code>, <code>aforo</code>, datos de contacto.</td></tr>
+    <tr><td class="f">ponencias</td><td>La charla y la logística del ponente. <code>horario_ponencia</code>, <code>presentacion_link</code>, <code>billete_ida_link</code>, <code>billete_vuelta_link</code>, hotel y transporte, <code>id_ponente</code>.</td></tr>
+    <tr><td class="f">ponentes</td><td>La persona que da la charla. <code>nombre_ponente</code>, <code>email</code>, <code>telefono</code>, <code>empresa</code>, <code>cargo</code>, enlaces a foto/CV.</td></tr>
+    <tr><td class="f">estados</td><td>La lista de estados posibles de un evento. Solo <code>id</code> y <code>descripcion</code> (p. ej. "Borrador", "Confirmado", "Cancelado").</td></tr>
+  </table>
+
+  <h3>Cómo se relacionan (quién apunta a quién)</h3>
+  <table>
+    <tr><th>Relación</th><th>En cristiano</th></tr>
+    <tr><td class="f">eventos.id_cliente → clientes.id</td><td>Cada evento tiene un cliente.</td></tr>
+    <tr><td class="f">eventos.id_estado → estados.id</td><td>Cada evento tiene un estado.</td></tr>
+    <tr><td class="f">eventos.id_sala → salas.id</td><td>Cada evento tiene una sala…</td></tr>
+    <tr><td class="f">salas.id_espacio → espacios.id</td><td>…y cada sala está dentro de un espacio.</td></tr>
+    <tr><td class="f">eventos.id_presupuesto → presupuestos.id</td><td>Cada evento tiene un presupuesto.</td></tr>
+    <tr><td class="f">eventos.id_ponencia → ponencias.id</td><td>Cada evento enlaza como mucho con <strong>una</strong> ponencia…</td></tr>
+    <tr><td class="f">ponencias.id_ponente → ponentes.id</td><td>…y cada ponencia, con <strong>un</strong> ponente.</td></tr>
+  </table>
+  <div class="callout warn">
+    <span class="tag">💡 Un matiz que confunde</span>
+    En este modelo <strong>un evento tiene como mucho un ponente</strong> (a través de su ponencia). Si alguien pregunta por "los ponentes" en plural, Lumen responde según lo que exista de verdad: cero o uno, sin suponer que puede haber varios.
+  </div>
+
+  <h3 style="color:var(--danger)">La tabla prohibida: <code>usuarios</code></h3>
+  <div class="callout danger">
+    <span class="tag">🚫 Exclusión dura, no negociable</span>
+    La tabla <code>usuarios</code> (cuentas y accesos de la plataforma) está <strong>totalmente fuera del alcance</strong> de Lumen. Nunca la consulta, nunca revela ni confirma nada sobre contraseñas o accesos. Esto está reforzado en <em>tres sitios</em>: las instrucciones de la IA (<code>prompts/prompt_sistema.md</code>), el código de datos (<code>lectura_datos.py</code> / <code>db_backend.py</code>) y la auditoría final (<code>validaciones.py</code>). Si preguntas por ella, Lumen lo marca como bloqueo de riesgo "alto".
+  </div>
+
+  <div class="callout">
+    <span class="tag">🔒 Datos personales</span>
+    Campos como el email o el teléfono de ponentes y clientes son datos personales. Lumen puede consultarlos para uso interno del equipo, pero no genera listados masivos exportables salvo que se le pida de forma acotada, y marca como "requiere validación humana" cualquier intento de sacarlos fuera de la plataforma.
+  </div>
+
+  <h2 id="q8">8 · Configuración y seguridad</h2>
+  <ul>
+    <li><strong>El archivo <code>.env</code></strong> guarda los secretos: la clave del LLM (<code>GROQ_API_KEY</code>) y la cadena de conexión a la base de datos (<code>DATABASE_URL</code>). No se sube a internet (está en <code>.gitignore</code>). Hay una plantilla sin secretos, <code>.env.example</code>, para copiar y rellenar.</li>
+    <li><strong>La conexión a la base de datos</strong> se enlaza en <code>.env</code> (variable <code>DATABASE_URL</code>), la lee <code>config/settings.py</code> y la usa <code>integrations/db_backend.py</code>. Se abre en <strong>modo solo lectura</strong>.</li>
+    <li><strong>Los permisos</strong> (<code>config/permisos.py</code>) están fijados en <code>False</code> a prueba de todo: nunca escribir, nunca enviar, nunca crear, nunca aprobar. No son "un valor por defecto que se pueda cambiar": son una regla permanente.</li>
+    <li><strong>El servidor web</strong> (<code>servidor.py</code>) arranca con el "modo debug" apagado por defecto (activarlo expondría una consola peligrosa). Se puede encender solo para desarrollo con <code>FLASK_DEBUG=true</code>.</li>
+  </ul>
+
+  <h2 id="q9">9 · Qué pasa cuando algo falla</h2>
+  <table>
+    <tr><th>Situación</th><th>Qué hace Lumen</th></tr>
+    <tr><td>La IA (LLM) no está disponible o falla</td><td>Usa una <strong>respuesta de reserva</strong> automática, redactada por el código sin IA. Nunca se queda mudo.</td></tr>
+    <tr><td>Se agota la cuota diaria de la IA (error 429)</td><td>Es el límite de tokens del plan gratuito de Groq (se resetea solo). Lumen sigue respondiendo con la versión de reserva. Se puede cambiar a un modelo con más cuota en <code>.env</code>.</td></tr>
+    <tr><td>La base de datos no responde</td><td>Devuelve un aviso claro ("no puedo confirmar este dato ahora") en vez de inventarse una respuesta.</td></tr>
+    <tr><td>El dato no existe</td><td>Lo dice explícitamente ("no encuentro ese evento"), no lo aproxima.</td></tr>
+    <tr><td>Preguntas por <code>usuarios</code> o por una escritura</td><td>Bloqueo inmediato, marcado con nivel de riesgo, sin tocar la base de datos.</td></tr>
+  </table>
+
+  <h2 id="q10">10 · Glosario completo</h2>
+  <dl class="glo">
+    <dt>Agente</dt><dd>Un programa que recibe una petición, hace un trabajo acotado y devuelve un resultado estructurado. Lumen es "el agente 04".</dd>
+    <dt>API (Interfaz de Programación)</dt><dd>Un conjunto de "puertas" por las que un programa pide cosas a otro. La API de Lumen es <code>servidor.py</code>.</dd>
+    <dt>Base de datos</dt><dd>Almacén ordenado de información en tablas. La nuestra es Postgres, alojada en Neon.</dd>
+    <dt>Clave foránea (FK)</dt><dd>Un campo que "apunta" a una fila de otra tabla. Aquí tienen nombres como <code>id_cliente</code> o <code>id_sala</code>.</dd>
+    <dt>Endpoint</dt><dd>Una dirección concreta dentro de una API. P. ej. <code>/chat</code> es el endpoint para preguntar.</dd>
+    <dt>Fallback (reserva)</dt><dd>El plan B automático: si la IA falla, responde el código sin IA.</dd>
+    <dt>Flask</dt><dd>La herramienta con la que está hecho el servidor web (<code>servidor.py</code>).</dd>
+    <dt>Groq</dt><dd>El servicio que ejecuta el modelo de IA (Llama 3.3) al que Lumen le pide que redacte.</dd>
+    <dt>JSON</dt><dd>Un formato de texto para intercambiar datos entre programas. La respuesta de Lumen viaja en JSON; tú solo ves el campo <code>resumen</code>.</dd>
+    <dt>LLM (Modelo de Lenguaje)</dt><dd>La IA que entiende y redacta texto. Aquí solo redacta la respuesta; no consulta datos.</dd>
+    <dt>Payload</dt><dd>El "paquete" de datos que se le pasa al agente con la pregunta y el contexto.</dd>
+    <dt>Postgres / PostgreSQL</dt><dd>El tipo de base de datos que usamos.</dd>
+    <dt>Neon</dt><dd>El proveedor en la nube que aloja esa base de datos Postgres.</dd>
+    <dt>Solo lectura (read-only)</dt><dd>Modo en el que solo se puede consultar, nunca modificar. La conexión de Lumen es así.</dd>
+    <dt>SQL</dt><dd>El lenguaje para preguntarle a la base de datos. Ej.: <code>SELECT * FROM eventos</code>. Lo escribe el código, no la IA.</dd>
+    <dt>Token</dt><dd>La unidad con la que se mide el consumo de la IA (trozos de palabra). El plan gratuito tiene un tope diario.</dd>
+    <dt>UUID</dt><dd>Un identificador único muy largo (tipo <code>8c4abda1-74a6-…</code>). Es el <code>id</code> real de cada fila; por eso la gente prefiere nombrar los eventos.</dd>
+    <dt>.env</dt><dd>Archivo de configuración con los secretos. No se comparte ni se sube a internet.</dd>
+  </dl>
+
+  <hr>
+  <p class="footer">Documento generado como material de apoyo del proyecto Lumen (Agente 04 · Copilot) — Ágora / Mitumi. Refleja el estado del código a 10/07/2026. Para el detalle técnico exacto, la fuente de verdad son los archivos del propio proyecto (<code>README.md</code>, <code>GUIA_EJECUCION.md</code> y el código en <code>src/</code>, <code>integrations/</code> y <code>config/</code>).</p>
+
+</div>
+</body>
+</html>

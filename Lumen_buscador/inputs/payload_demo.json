@@ -1,0 +1,16 @@
+{
+  "id_evento": null,
+  "id_registro": null,
+  "tipo_peticion": "consultar_datos_evento",
+  "origen": "demo",
+  "usuario_solicitante": "raul",
+  "rol_usuario": "organizador",
+  "datos": {
+    "pregunta": "¿cuántos eventos hay?"
+  },
+  "contexto": {
+    "fase_evento": "consulta_general",
+    "nota_demo": "Demo transversal sin id_evento: corre contra la BD real (UUID) sin hardcodear ningun id. Para probar un evento concreto por su ponente/billete, cambia la pregunta para NOMBRAR el evento, p.ej. '¿que ponentes no han subido el billete de vuelta del evento <Nombre real>?'; modo_demo lo resuelve por nombre. Tambien puedes pegar un UUID: '... del evento <uuid>'."
+  },
+  "modo": "consulta"
+}

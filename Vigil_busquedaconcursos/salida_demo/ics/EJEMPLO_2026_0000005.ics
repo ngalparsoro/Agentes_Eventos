@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Vigil//Agente de licitaciones//ES
+BEGIN:VEVENT
+UID:EJEMPLO-2026-0000005@vigil
+DTSTAMP:20260713T100933
+DTSTART:20260812T235900
+DTEND:20260812T235900
+SUMMARY:Fecha límite: Diseño y dinamización de una jornada de participación ciudadana y talleres creativos sobre movilidad sostenible\, con facilitación gráfica.
+DESCRIPTION:Órgano convocante: Diputación Foral de Gipuzkoa\nEnlace al pliego: https://www.contratacion.euskadi.eus/ejemplo/jornada-participacion
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio: fecha límite de licitación
+END:VALARM
+END:VEVENT
+END:VCALENDAR
