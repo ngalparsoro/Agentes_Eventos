@@ -164,6 +164,6 @@ están recibidos e integrados**: Lumen, Operis, Jano, Vigil, Hermes y Garum.
 
 | Versión | Fecha | Qué |
 |---|---|---|
-| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). Confirmado que Vigil es el agente de alertas de la v4 → sin pendientes: mapa completo. |
+| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). Confirmado que Vigil es el agente de alertas de la v4 → sin pendientes: mapa completo. Homogeneización posterior: `GET /health` uniforme en TODOS los servicios, errores siempre en JSON `{"error":true,codigo,mensaje}` (Jano/Vigil añaden `detail` por compatibilidad), Operis pasa a 127.0.0.1, Vigil devuelve 409 si ya hay ejecución en curso, backend responde 503 (no listas vacías) con la BBDD caída y usa pool de conexiones. |
 | v4 | 2026-07-10 | Backend unificado de data :5003 en-proceso (Lumen+Operis). |
 | v3 | 2026-07-09 | Primer inventario real (backend Express, Lumen :5001, Operis :5002 V1). |
