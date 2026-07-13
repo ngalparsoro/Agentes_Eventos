@@ -1,0 +1,14 @@
+{
+  "id_evento": "evt_demo_001",
+  "id_registro": null,
+  "tipo_peticion": "extraer_briefing",
+  "origen": "demo",
+  "usuario_solicitante": "demo",
+  "rol_usuario": "organizador",
+  "datos": {
+    "texto_briefing": "Asunto: Solicitud de organización de evento\n\nBuenas tardes,\n\nMe presento, soy Laura Martínez, responsable de marketing de la empresa TechCorp S.L.\n\nLes escribo porque estamos interesados en contratar sus servicios para la organización de un evento corporativo. Se trata del Congreso Anual de Innovación Digital, que queremos celebrar en Madrid los días 15, 16 y 17 de octubre de 2026.\n\nTenemos previsto un aforo de unas 350 personas. Necesitaríamos servicio de catering, audiovisuales y streaming. También nos gustaría contar con traducción simultánea al inglés.\n\nEl presupuesto estimado con el que contamos es de 45.000 euros aproximadamente, aunque estamos pendientes de aprobación interna.\n\nEl evento se celebraría en el Hotel Marriott Auditorium, pero estamos abiertos a sugerencias si conocen otras opciones similares.\n\nQuedamos a la espera de su propuesta y de cualquier duda que necesiten aclarar.\n\nMuchas gracias.\n\nUn cordial saludo,\n\nLaura Martínez\nResponsable de Marketing\nTechCorp S.L.\nTeléfono: 600 123 456\nEmail: laura.martinez@techcorp.es",
+    "motor": "llm"
+  },
+  "contexto": {},
+  "modo": "propuesta"
+}

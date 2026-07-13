@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secretos y entorno
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Backup del git interno de desafio-back-agentes
+.git.disabled/
