@@ -1,12 +1,21 @@
 """
 Punto de entrada comun de Lumen (Agente 04 - Copilot).
 
-Lo usa main.py (local), y en la arquitectura final el agente orquestador de Agora, ya sea por
-import directo o por una futura API. La firma de ejecutar_agente(payload) -> dict es el unico
+Lo usan main.py (local) y servidor.py (API HTTP para el frontend), ya sea por import directo o
+por una futura API. La firma de ejecutar_agente(payload) -> dict es el unico
 contrato que NO puede cambiar (ver README.md, seccion 1).
 
 Motor de LLM: Groq (ver src/llm.py). Si no hay API key configurada en .env, o si el LLM falla,
 este modulo cae siempre a reglas deterministas - Lumen nunca debe quedarse sin responder.
+
+Clasificador LLM de respaldo (prompts/prompt_clasificar_consulta.md): la clasificacion de
+preguntas transversales/estado sigue siendo determinista por palabras clave (seccion 1 y
+SINONIMOS_ESTADO_EVENTO) y es SIEMPRE lo primero que se intenta. El LLM solo entra en juego
+como respaldo, y unicamente cuando: (a) la pregunta no trae id_evento, y (b) ninguna regla
+determinista reconocio nada en ella. En ese caso, y solo en ese caso, se le pide al LLM UNA
+etiqueta de una lista cerrada de 6 categorias (nunca SQL, nunca datos) para intentar rescatar
+preguntas formuladas de una forma que las palabras clave no cubren. Ver
+_responder_con_clasificador_respaldo() y README.md para el detalle y las garantias de seguridad.
 """
 
 import json
@@ -14,6 +23,7 @@ import re
 import unicodedata
 
 from config.permisos import ALLOW_DB_WRITE
+from config.settings import SETTINGS
 from src.schemas import validar_entrada, construir_salida_base
 from src.lectura_datos import (
     TablaNoPermitida,
@@ -90,6 +100,25 @@ PALABRAS_LISTAR_ESTADOS = [
     "que estados hay", "estados hay", "estados existen", "estados disponibles",
     "lista de estados", "listar estados", "listado de estados", "que estados existen",
 ]
+
+# --- Clasificador LLM de respaldo (prompts/prompt_clasificar_consulta.md) --------------------
+# Enum cerrado tal cual lo define el prompt - si el LLM devuelve cualquier otra cosa (o texto
+# libre en vez de una de estas 6 categorias), no se adivina: se trata como si no hubiese
+# respondido nada util y la pregunta sigue el mismo camino que antes de conectar este respaldo.
+CATEGORIAS_CLASIFICACION_VALIDAS = {
+    "consulta_datos_evento",
+    "consulta_metricas_globales",
+    "aclaracion_necesaria",
+    "fuera_de_alcance_escritura",
+    "fuera_de_alcance_usuarios",
+    "no_relacionada",
+}
+
+# Activado por defecto. Se puede desactivar sin tocar codigo con CLASIFICADOR_LLM_RESPALDO=false
+# en .env - por ejemplo para pruebas que exigen determinismo total en cada ejecucion.
+CLASIFICADOR_LLM_RESPALDO_ACTIVO = (
+    SETTINGS.get("CLASIFICADOR_LLM_RESPALDO", "true") or "true"
+).strip().lower() not in ("false", "0", "no")
 
 
 def _normalizar(texto):
@@ -241,7 +270,7 @@ def buscar_evento_por_nombre(pregunta):
 def ejecutar_agente(payload):
     """
     Punto de entrada comun del agente Lumen.
-    Lo usa el main.py local, el orquestador o una futura API.
+    Lo usan el main.py local, servidor.py o una futura API.
     """
     errores_entrada = validar_entrada(payload)
     salida = construir_salida_base(NOMBRE_AGENTE, payload.get("tipo_peticion", "desconocido"))
@@ -276,7 +305,7 @@ def ejecutar_agente(payload):
     if _contiene_alguna(pregunta_lower, PALABRAS_ESCRITURA):
         salida["resumen"] = (
             "No puedo modificar, aprobar ni borrar datos - solo consulto informacion existente. "
-            "Esa accion debe pasar por el orquestador y validacion humana."
+            "Esa accion queda fuera de mi alcance y requiere validacion humana."
         )
         salida["bloqueos_detectados"] = ["la peticion implica una escritura, fuera del alcance de Lumen"]
         salida["nivel_riesgo"] = "medio"
@@ -312,6 +341,19 @@ def ejecutar_agente(payload):
                     return resultado_llm
             return _responder_resumen_evento(salida, id_evento)
 
+        # --- 2.5 Respaldo: clasificador LLM (prompts/prompt_clasificar_consulta.md) ----------
+        # Solo se llega aqui si id_evento es None Y ninguna regla determinista de arriba
+        # reconocio nada (ni bloqueo de seguridad, ni billete/ponente, ni transversal). Es un
+        # respaldo, no un reemplazo: la clasificacion por palabras clave sigue siendo lo primero
+        # que se intenta siempre, y si esta desactivada o falla, el comportamiento es identico
+        # al de antes de conectar este respaldo (cae a la seccion 3, mensaje fijo).
+        if CLASIFICADOR_LLM_RESPALDO_ACTIVO and llm_disponible():
+            resultado_respaldo = _responder_con_clasificador_respaldo(
+                salida, pregunta, pregunta_lower, historial
+            )
+            if resultado_respaldo is not None:
+                return resultado_respaldo
+
     except TablaNoPermitida as exc:
         salida["ok"] = False
         salida["resumen"] = "No puedo acceder a esa informacion: esta fuera de mi alcance de consulta."
@@ -333,12 +375,14 @@ def ejecutar_agente(payload):
         salida["requiere_validacion_humana"] = True
         return auditar_salida(salida)
 
-    # --- 3. Sin id_evento y sin patron reconocido en este demo -------------------------------
-    salida["resumen"] = (
-        "Necesito al menos el id_evento o mas contexto para responder esa pregunta sobre la "
-        "plataforma."
-    )
-    salida["bloqueos_detectados"] = ["consulta sin id_evento y sin patron reconocido en este demo"]
+    # --- 3. Sin id_evento y sin patron reconocido: nada en el dominio de Lumen encaja --------
+    # A diferencia de la linea 286 (falta id_evento pero SI se reconoce el tema: billete/ponente),
+    # aqui no se reconocio ningun tema de la plataforma en absoluto -- lo mas probable es que la
+    # pregunta sea sobre algo que sencillamente no esta en la base de datos de Mitumi (clima,
+    # cultura general, otra empresa...). Respuesta fija y literal, a proposito: no se redacta con
+    # variaciones para que sea facil de reconocer en pruebas y en la documentacion (ver README).
+    salida["resumen"] = "Esa información no está en Mitumi. Reformula tu consulta."
+    salida["bloqueos_detectados"] = ["pregunta fuera del alcance de datos de Mitumi"]
     return auditar_salida(salida)
 
 
@@ -464,6 +508,112 @@ def _responder_con_llm(salida, pregunta, id_evento, historial=None):
         )
     salida["trazas"]["fuentes_consultadas"] = datos_llm.get("fuentes", [])
     return auditar_salida(salida)
+
+
+def _clasificar_con_llm_respaldo(pregunta, historial=None):
+    """
+    Llama al LLM con prompts/prompt_clasificar_consulta.md para obtener UNA etiqueta de una
+    lista cerrada de 6 categorias. No construye SQL ni devuelve datos - es exactamente lo que
+    se discutio como "clasificador de respaldo": el LLM solo entra cuando el codigo determinista
+    no reconocio nada, y solo para decidir a que rama determinista redirigir la pregunta.
+
+    Devuelve el dict JSON que exige el prompt (categoria, id_evento_detectado,
+    filtros_detectados, falta_para_responder, motivo), o None si el LLM no esta disponible,
+    falla, devuelve JSON invalido, o devuelve una categoria fuera del enum esperado - en
+    cualquiera de esos casos el llamador debe seguir tratando la pregunta como "no reconocida"
+    (mismo comportamiento que antes de conectar este respaldo, nunca peor).
+    """
+    contexto_texto = "(sin contexto previo en esta sesion)"
+    if historial:
+        lineas = []
+        for turno in historial[-4:]:
+            lineas.append("Usuario: " + str(turno.get("pregunta", "")))
+            lineas.append("Lumen: " + str(turno.get("resumen", "")))
+        contexto_texto = "\n".join(lineas)
+
+    try:
+        prompt_sistema = cargar_prompt("prompt_sistema.md")
+        prompt_clasificar = cargar_prompt("prompt_clasificar_consulta.md")
+        mensaje = (
+            prompt_clasificar
+            .replace("{{consulta_usuario}}", pregunta)
+            .replace("{{contexto_conversacion_opcional}}", contexto_texto)
+        )
+        texto = llamar_llm(prompt_sistema, mensaje)
+        resultado = _parsear_json_llm(texto)
+    except Exception:
+        return None
+
+    if not isinstance(resultado, dict) or resultado.get("categoria") not in CATEGORIAS_CLASIFICACION_VALIDAS:
+        return None
+    return resultado
+
+
+def _responder_con_clasificador_respaldo(salida, pregunta, pregunta_lower, historial=None):
+    """
+    Traduce la categoria devuelta por _clasificar_con_llm_respaldo() a una respuesta, siempre
+    reutilizando las mismas ramas deterministas que ya existen (nunca se inventa una respuesta
+    nueva a partir de lo que diga el LLM). Devuelve None si el LLM no esta disponible/falla, o si
+    la categoria es "no_relacionada" - en ambos casos el llamador sigue con el mensaje fijo de la
+    seccion 3, exactamente igual que si este respaldo no existiera.
+
+    Seguridad: ninguna rama de aqui deja que el LLM aporte datos - "consulta_metricas_globales"
+    reutiliza _responder_consulta_transversal_eventos (que vuelve a leer la BD real por su
+    cuenta); el resto son mensajes deterministas ya existentes en la seccion 1. La etiqueta del
+    LLM solo decide el ENRUTADO, nunca el contenido de la respuesta.
+    """
+    resultado = _clasificar_con_llm_respaldo(pregunta, historial)
+    if resultado is None:
+        return None
+
+    categoria = resultado.get("categoria")
+
+    if categoria == "consulta_metricas_globales":
+        # Se reutiliza la misma funcion que usa la deteccion por palabras clave: lee la BD real
+        # de nuevo, no se le pasa ningun dato "adivinado" por el LLM.
+        return _responder_consulta_transversal_eventos(salida, pregunta_lower)
+
+    if categoria in ("consulta_datos_evento", "aclaracion_necesaria"):
+        salida["resumen"] = "¿De que evento necesitas esa informacion? Dime el nombre o el id_evento."
+        salida["bloqueos_detectados"] = [
+            "falta id_evento para resolver la consulta (detectado por el clasificador LLM de respaldo)"
+        ]
+        return auditar_salida(salida)
+
+    if categoria == "fuera_de_alcance_escritura":
+        # Red de seguridad adicional: la deteccion por palabras clave de la seccion 1 deberia
+        # haber atrapado esto antes. Si llega hasta aqui es porque la redaccion de la pregunta no
+        # coincidia con ninguna palabra de PALABRAS_ESCRITURA - el mensaje es identico al de esa
+        # seccion, solo cambia de donde vino la deteccion.
+        salida["resumen"] = (
+            "No puedo modificar, aprobar ni borrar datos - solo consulto informacion existente. "
+            "Esa accion queda fuera de mi alcance y requiere validacion humana."
+        )
+        salida["bloqueos_detectados"] = [
+            "la peticion implica una escritura, fuera del alcance de Lumen "
+            "(detectado por el clasificador LLM de respaldo)"
+        ]
+        salida["nivel_riesgo"] = "medio"
+        salida["requiere_validacion_humana"] = True
+        return auditar_salida(salida)
+
+    if categoria == "fuera_de_alcance_usuarios":
+        # Misma logica: red de seguridad adicional sobre PALABRAS_USUARIOS, no el primer filtro.
+        salida["resumen"] = (
+            "Esa consulta esta fuera de mi alcance: no tengo acceso a la tabla 'usuarios' ni a "
+            "credenciales de la plataforma."
+        )
+        salida["bloqueos_detectados"] = [
+            "consulta sobre tabla usuarios / credenciales (detectado por el clasificador LLM de respaldo)"
+        ]
+        salida["nivel_riesgo"] = "alto"
+        salida["requiere_validacion_humana"] = True
+        return auditar_salida(salida)
+
+    # categoria == "no_relacionada": el LLM confirma que no hay nada que hacer con esta
+    # pregunta. Se devuelve None a proposito para no duplicar el mensaje fijo aqui - lo pone la
+    # seccion 3 de ejecutar_agente(), que es la unica fuente de esa frase exacta.
+    return None
 
 
 def _responder_consulta_transversal_eventos(salida, pregunta_lower):

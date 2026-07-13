@@ -8,7 +8,8 @@ Con los datos entregados a continuación, redacta la respuesta a la pregunta del
 
 Usa ÚNICAMENTE la información contenida en <datos_recuperados>. No completes huecos con suposiciones,
 conocimiento general ni estimaciones. Si <datos_recuperados> está vacío o no contiene lo necesario para
-responder, dilo explícitamente en vez de generar una respuesta parcial disfrazada de completa.
+responder, pon EXACTAMENTE la frase "Esa información no está en Mitumi. Reformula tu consulta." como
+"resumen" (sin variaciones ni añadidos), en vez de generar una respuesta parcial disfrazada de completa.
 
 Si el usuario pregunta de dónde sale un dato, o si el dato es sensible/ambiguo, indica la tabla y el
 campo de origen (por ejemplo: "presupuestos.total, evento_id 12").

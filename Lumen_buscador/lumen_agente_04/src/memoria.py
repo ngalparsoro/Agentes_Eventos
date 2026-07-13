@@ -2,7 +2,7 @@
 memoria.py — Memoria de conversacion de Lumen (Agente 04 - Copilot).
 
 Capa POR ENCIMA de ejecutar_agente(payload), sin tocar su contrato (README.md, seccion 1, lo
-marca como no modificable porque el orquestador depende de que siga siendo stateless). Tanto
+marca como no modificable porque la integracion depende de que siga siendo stateless). Tanto
 main.py (chat de consola) como servidor.py (API HTTP para el frontend React) usan esta misma
 clase, cada uno con sus propias instancias:
 

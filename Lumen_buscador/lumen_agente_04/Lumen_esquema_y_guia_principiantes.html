@@ -62,11 +62,26 @@
 
   <h1>Lumen (Agente 04 · Copilot)</h1>
   <p class="sub">Cómo funciona el agente, explicado desde cero — esquema de trabajo, esquema de la base de datos y glosario.</p>
-  <p class="meta">Proyecto Ágora · Mitumi &nbsp;·&nbsp; Documento de referencia para personas que empiezan &nbsp;·&nbsp; Actualizado: 10/07/2026</p>
+  <p class="meta">Proyecto Ágora · Mitumi &nbsp;·&nbsp; Documento de referencia para personas que empiezan &nbsp;·&nbsp; Actualizado: 13/07/2026</p>
 
   <div class="callout">
     <span class="tag">💡 Para quién es este documento</span>
     Está escrito para alguien que <strong>no ha programado</strong> este proyecto (o no ha programado nunca). No hace falta saber nada previo: cada término técnico se explica la primera vez que aparece, y al final hay un glosario. Si solo quieres una cosa: <strong>las consultas a la base de datos están en el archivo <code>integrations/db_backend.py</code></strong> (lo explicamos en la sección 6).
+  </div>
+
+  <div class="callout" style="border-left-color:var(--accent);">
+    <span class="tag">⚡ Resumen del flujo en 30 segundos</span>
+    <p style="margin:6px 0"><strong>Entra texto y sale texto, pero en el medio el LLM nunca habla con la base de datos.</strong> Quien consulta es código Python determinista; el LLM solo redacta al final, y solo a veces. Esa separación es la decisión de diseño más importante de Lumen.</p>
+    <ol style="margin:8px 0 4px; padding-left:20px;">
+      <li><strong>Entra la pregunta</strong> — consola (<code>main.py</code>) o API web (<code>servidor.py</code>).</li>
+      <li><strong>Se resuelve de qué evento hablas</strong> (<code>src/memoria.py</code>): por UUID, por nombre o por memoria.</li>
+      <li><strong>Se entra al agente</strong> (<code>src/agente.py</code> &#8594; <code>src/nucleo.py</code>).</li>
+      <li><strong>Se clasifica y se protege, en código</strong> (<code>src/nucleo.py</code> + <code>config/permisos.py</code>): bloquea la tabla <code>usuarios</code> y las escrituras.</li>
+      <li><strong>Se leen los datos</strong> (<code>src/lectura_datos.py</code> &#8594; <code>integrations/db_backend.py</code>): un <code>SELECT</code> de solo lectura. Sin LLM.</li>
+      <li><strong>Solo a veces, el LLM redacta</strong> (<code>src/llm.py</code> + <code>prompts/*.md</code>) con los datos ya filtrados. Muchas preguntas se resuelven sin IA; si el LLM falla, hay respuesta de reserva.</li>
+      <li><strong>Se audita y se entrega</strong> (<code>src/validaciones.py</code>): sale en JSON y tú ves el <code>resumen</code>.</li>
+    </ol>
+    <p style="margin:8px 0 0"><strong>Por qué importa:</strong> aunque el LLM alucinara o intentaran manipularlo, no puede saltarse los permisos porque <strong>nunca toca la base de datos</strong>. Es un <em>redactor</em>, no un <em>consultor</em>. Y el SQL vive en <code>integrations/db_backend.py</code>; <code>src/lectura_datos.py</code> decide qué pedir y bloquea <code>usuarios</code>.</p>
   </div>
 
   <div class="toc">
@@ -81,7 +96,10 @@
       <li><a href="#q7">El esquema de la base de datos (tablas y campos)</a></li>
       <li><a href="#q8">Configuración y seguridad</a></li>
       <li><a href="#q9">Qué pasa cuando algo falla</a></li>
-      <li><a href="#q10">Glosario completo</a></li>
+      <li><a href="#q10">Memoria de conversación: qué guarda y cuándo se borra</a></li>
+      <li><a href="#q11">¿Usa Lumen RAG?</a></li>
+      <li><a href="#q12">El clasificador LLM de respaldo</a></li>
+      <li><a href="#q13">Glosario completo</a></li>
     </ol>
   </div>
 
@@ -186,6 +204,10 @@
     <tr><td>6</td><td>Se revisa la respuesta antes de entregarla.</td><td class="f">src/validaciones.py</td><td>Última barrera: aunque la IA se equivocara, aquí se borra cualquier fuga sobre <code>usuarios</code> o cualquier acción de escritura.</td></tr>
     <tr><td>7</td><td>Se devuelve la respuesta y la lees.</td><td class="f">main.py<br>servidor.py</td><td>La respuesta viaja como <em>JSON</em> (un formato de datos); tú solo ves el texto del campo <code>resumen</code>.</td></tr>
   </table>
+  <div class="callout warn">
+    <span class="tag">💡 Un matiz dentro del paso 4</span>
+    Si la pregunta no menciona ningún evento y las reglas de palabras clave del paso 4 no reconocen nada en ella, hay un paso extra antes de rendirse: se le pide al LLM una única etiqueta de clasificación de respaldo (nunca datos). Ver sección 12, "El clasificador LLM de respaldo".
+  </div>
 
   <h2 id="q4">4 · La regla de oro: el LLM nunca toca la base de datos</h2>
   <p>Es el punto más importante y el que más se malentiende. Mucha gente imagina que la IA "traduce tu pregunta a una consulta y se la manda a la base de datos". <strong>Aquí no es así.</strong></p>
@@ -207,7 +229,7 @@
     <li><strong>Contrato de entrada</strong><br>
       <code>src/agente.py</code> — la función oficial <code>ejecutar_agente(payload)</code>. No tiene lógica: solo reexporta desde <code>nucleo.py</code>.</li>
     <li><strong>Cerebro (decide todo)</strong><br>
-      <code>src/nucleo.py</code> — clasifica la pregunta, aplica bloqueos y orquesta el resto. &nbsp; <code>src/memoria.py</code> — recuerda el evento del que hablas.</li>
+      <code>src/nucleo.py</code> — clasifica la pregunta, aplica bloqueos y coordina el resto. &nbsp; <code>src/memoria.py</code> — recuerda el evento del que hablas.</li>
     <li><strong>Datos (habla con la base de datos)</strong><br>
       <code>src/lectura_datos.py</code> — decide qué leer y comprueba permisos. &nbsp; <strong><code>integrations/db_backend.py</code> — el SQL y la conexión a Postgres.</strong></li>
     <li><strong>Inteligencia artificial (redacta)</strong><br>
@@ -311,9 +333,50 @@
     <tr><td>La base de datos no responde</td><td>Devuelve un aviso claro ("no puedo confirmar este dato ahora") en vez de inventarse una respuesta.</td></tr>
     <tr><td>El dato no existe</td><td>Lo dice explícitamente ("no encuentro ese evento"), no lo aproxima.</td></tr>
     <tr><td>Preguntas por <code>usuarios</code> o por una escritura</td><td>Bloqueo inmediato, marcado con nivel de riesgo, sin tocar la base de datos.</td></tr>
+    <tr><td>El clasificador LLM de respaldo (sección 12) falla, no responde, o inventa una categoría que no existe</td><td>Se ignora sin más — Lumen sigue exactamente igual que si ese respaldo no existiera, nunca se queda a medias ni se cae.</td></tr>
   </table>
 
-  <h2 id="q10">10 · Glosario completo</h2>
+  <h2 id="q10">10 · Memoria de conversación: qué guarda y cuándo se borra</h2>
+  <p>Lumen tiene <strong>memoria temporal, de sesión</strong> (<code>src/memoria.py</code>): recuerda el último evento del que hablaste y el historial reciente de la conversación, para que puedas preguntar "¿y su presupuesto?" sin repetir el nombre del evento. Esa memoria vive <strong>solo en RAM</strong> (la memoria de trabajo del ordenador), nunca en disco ni en la base de datos — se pierde en cuanto el proceso o la sesión terminan, por diseño.</p>
+  <table>
+    <tr><th>Dónde</th><th>Ámbito de la memoria</th><th>Cómo se borra</th></tr>
+    <tr><td class="f">main.py</td><td>Una <code>MemoriaConversacion</code> por proceso de consola — toda la sesión de terminal comparte el mismo hilo de conversación.</td><td>Escribiendo <code>nuevo</code> se vacía sin cerrar la consola. Escribiendo <strong><code>salir</code></strong> (o <code>exit</code>/<code>quit</code>) se borra la memoria explícitamente y termina el programa.</td></tr>
+    <tr><td class="f">servidor.py</td><td>Una <code>MemoriaConversacion</code> por <code>sesion_id</code> (un usuario del navegador = una entrada en un diccionario en RAM).</td><td><code>POST /chat/reset</code> vacía el contexto pero mantiene la sesión abierta (para un botón "nueva conversación"). Escribiendo <strong><code>salir</code></strong> como mensaje normal en <code>POST /chat</code> borra la entrada de esa sesión por completo — la memoria deja de existir en el proceso.</td></tr>
+  </table>
+  <div class="callout warn">
+    <span class="tag">💡 Por qué es memoria temporal "a propósito"</span>
+    No es una limitación pendiente de arreglar: Lumen es un agente de <em>consulta</em>, no guarda histórico de conversaciones como fuente de verdad (los datos reales siempre salen de la base de datos, nunca del historial). Que la memoria desaparezca al decir <code>salir</code> evita arrastrar contexto de una conversación a otra y no añade ningún almacén de datos adicional que proteger.
+  </div>
+
+  <h2 id="q11">11 · ¿Usa Lumen RAG?</h2>
+  <p><strong>No en el sentido técnico habitual del término.</strong> "RAG" (Retrieval-Augmented Generation) normalmente significa: trocear documentos, convertirlos en vectores (embeddings), guardarlos en una base de datos vectorial y, en cada pregunta, buscar por similitud semántica los fragmentos más parecidos para dárselos al LLM. Lumen no hace nada de eso — no hay embeddings, no hay índice vectorial, no hay búsqueda por similitud.</p>
+  <p>Lo que sí existe es una carpeta llamada <code>data/rag/documentos/esquema_bd.md</code>, pero su función real es distinta: es <strong>documentación estática del esquema de la base de datos</strong> (qué tablas y campos existen), que sirve de referencia fija tanto para quien programa como para el texto del prompt del sistema. No se "recupera" dinámicamente ni se compara por similitud con la pregunta — es siempre el mismo documento, entero, cada vez.</p>
+  <div class="callout ok">
+    <span class="tag">✔ Por qué no hace falta RAG aquí</span>
+    Los datos de Lumen (eventos, presupuestos, ponentes…) son <strong>datos estructurados y exactos</strong>, guardados en tablas de Postgres con relaciones conocidas (claves foráneas). Para ese tipo de datos, una consulta SQL determinista (<code>src/lectura_datos.py</code> → <code>integrations/db_backend.py</code>) es más precisa, más rápida, más barata y más auditable que una búsqueda semántica aproximada. RAG tiene sentido cuando la fuente es <em>texto libre no estructurado</em> (contratos, actas, políticas en PDF) y no se sabe de antemano qué fragmento contiene la respuesta — no es el caso de Lumen: aquí siempre se sabe exactamente qué tabla y qué campo consultar.</div>
+  <div class="callout warn">
+    <span class="tag">💡 Cuándo SÍ tendría sentido añadirlo</span>
+    Si en el futuro Mitumi quisiera que Lumen respondiera preguntas sobre documentos no estructurados (por ejemplo, "¿qué dice el contrato de patrocinio del evento X sobre cancelaciones?"), ahí sí encajaría un RAG real: trocear esos PDF/Word, indexarlos por embeddings y recuperar el fragmento relevante para dárselo al LLM. Hoy esa necesidad no existe porque toda la información de negocio ya vive en la base de datos estructurada.
+  </div>
+  <p>Puedes ver esto reflejado en el diagrama de la sección 3: no hay ninguna caja de "búsqueda semántica" ni "base de datos vectorial" en el recorrido de una pregunta — solo clasificación determinista, lectura de BD y, a veces, redacción con LLM.</p>
+
+  <h2 id="q12">12 · El clasificador LLM de respaldo</h2>
+  <p>La clasificación principal de las preguntas (¿es sobre un evento? ¿es transversal, tipo "cuántos eventos hay"? ¿es una escritura prohibida?) sigue siendo <strong>determinista</strong>: código que compara la pregunta contra listas de palabras clave y sinónimos (<code>SINONIMOS_ESTADO_EVENTO</code>, en <code>src/nucleo.py</code>). Eso no ha cambiado y sigue siendo lo primero que se intenta siempre, sin depender de la IA.</p>
+  <p>Lo nuevo es un <strong>respaldo</strong>: cuando una pregunta no menciona ningún evento concreto y ese código determinista no reconoce nada en ella, Lumen le pide al LLM (usando <code>prompts/prompt_clasificar_consulta.md</code>) que la clasifique en <strong>una de 6 categorías cerradas</strong> — nunca le pide datos, nunca le deja escribir la consulta a la base de datos, solo una etiqueta. Con esa etiqueta, Lumen decide a cuál de sus respuestas ya existentes redirigir la pregunta.</p>
+  <div class="callout ok">
+    <span class="tag">✔ Qué gana Lumen con esto</span>
+    Antes, una pregunta transversal formulada de una forma "rara" (que no estuviera en la lista de sinónimos) caía siempre en el mensaje genérico de "esa información no está en Mitumi". Ahora, si el LLM reconoce que en realidad es una pregunta sobre el catálogo de eventos, Lumen responde con datos reales en vez de con el mensaje genérico.
+  </div>
+  <div class="callout warn">
+    <span class="tag">💡 Por qué es un respaldo y no un reemplazo</span>
+    Usarlo en todas las preguntas costaría tokens, tiempo y haría que la misma pregunta pudiera, en teoría, responderse distinto dos veces (el LLM no es 100% predecible como el código). Al usarlo solo cuando el código determinista ya falló, ese coste se paga solo en el porcentaje de preguntas que hoy no se reconocen — no en todas. Si el LLM no está disponible, falla, o devuelve algo que no es una de las 6 categorías esperadas, Lumen lo ignora sin más: se comporta exactamente igual que si este respaldo no existiera.
+  </div>
+  <div class="callout danger">
+    <span class="tag">✘ Lo que este respaldo NUNCA hace</span>
+    No genera la consulta SQL, no inventa datos, y no puede saltarse los bloqueos de seguridad: las preguntas sobre <code>usuarios</code> o que piden una escritura ya se bloquean en código, antes de llegar a este respaldo. Se puede desactivar por completo poniendo <code>CLASIFICADOR_LLM_RESPALDO=false</code> en <code>.env</code>, sin tocar código.
+  </div>
+
+  <h2 id="q13">13 · Glosario completo</h2>
   <dl class="glo">
     <dt>Agente</dt><dd>Un programa que recibe una petición, hace un trabajo acotado y devuelve un resultado estructurado. Lumen es "el agente 04".</dd>
     <dt>API (Interfaz de Programación)</dt><dd>Un conjunto de "puertas" por las que un programa pide cosas a otro. La API de Lumen es <code>servidor.py</code>.</dd>
@@ -336,7 +399,7 @@
   </dl>
 
   <hr>
-  <p class="footer">Documento generado como material de apoyo del proyecto Lumen (Agente 04 · Copilot) — Ágora / Mitumi. Refleja el estado del código a 10/07/2026. Para el detalle técnico exacto, la fuente de verdad son los archivos del propio proyecto (<code>README.md</code>, <code>GUIA_EJECUCION.md</code> y el código en <code>src/</code>, <code>integrations/</code> y <code>config/</code>).</p>
+  <p class="footer">Documento generado como material de apoyo del proyecto Lumen (Agente 04 · Copilot) — Ágora / Mitumi. Refleja el estado del código a 13/07/2026. Para el detalle técnico exacto, la fuente de verdad son los archivos del propio proyecto (<code>README.md</code>, <code>GUIA_EJECUCION.md</code> y el código en <code>src/</code>, <code>integrations/</code> y <code>config/</code>).</p>
 
 </div>
 </body>

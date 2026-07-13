@@ -1,7 +1,7 @@
 """
 Auditoria final de la salida de Lumen - equivalente en codigo a prompts/prompt_validar_salida.md.
 
-Se ejecuta SIEMPRE antes de devolver la respuesta al orquestador, tanto en el flujo determinista
+Se ejecuta SIEMPRE antes de devolver la respuesta, tanto en el flujo determinista
 de este demo como (en produccion) sobre la salida del LLM. Es la ultima linea de defensa contra:
   - fuga de la tabla `usuarios` o de credenciales de acceso a la plataforma
   - que Lumen proponga o redacte una accion de escritura (no le corresponde)

@@ -25,7 +25,7 @@ Leyenda: ✅ implementado y probado · 🔨 implementado, no probado · ⚠️ p
 |---|---|---|
 | 3000 | Backend Express (full stack) | Front (datos + escrituras) |
 | 5000 | Mock API_Nora (Desafio_Mit-mi) | Front (pantallas sin ruta real) |
-| 5001 | Lumen suelto (cuando llegue) | — reservado |
+| 5001 | Lumen | Gateway (o front directo, plan B) |
 | 5002 | Operis | Gateway (o front directo, plan B) |
 | **5003** | **Gateway de data (este repo)** | **Front — LA base de integración** |
 | 5004 | Backend de datos para agentes | Hermes, gestor de correos |
@@ -47,10 +47,10 @@ Swagger: `GET /docs` · Sin autenticación, CORS abierto (fase demo).
 |---|---|---|
 | `GET /` | Info: agentes reales registrados y stubs activos | 🔨 |
 | `GET /salud` | Salud agregada de TODAS las piezas (agentes, backend :5004, stubs) | 🔨 |
+| `POST /agentes/lumen/chat` · `/chat/reset` | Proxy → Lumen :5001 | 🔨 |
 | `POST /agentes/operis/autocompletar` | Proxy → Operis :5002 | 🔨 |
 | `GET/POST /agentes/jano/...` | Proxy → Jano :8001 (buscar, informes PDF, health) | 🔨 |
 | `GET/POST /agentes/vigil/...` | Proxy → Vigil :8000 (concursos, ejecuciones, ICS, pliegos) | 🔨 |
-| `POST /agentes/lumen/chat` · `/chat/reset` | 🧩 Stub con el contrato real de v4 — responde `"_stub": true` | 🧩 |
 | `/agentes/correos/...` · `/agentes/alertas/...` | 501 `AGENTE_PENDIENTE` hasta que lleguen los definitivos | ⚠️ |
 | `POST /autocompletar` · `/chat` · `/chat/reset` | Alias de compatibilidad v4 en la raíz | 🔨 |
 
@@ -63,6 +63,16 @@ códigos propios del gateway: `AGENTE_PENDIENTE` (501), `AGENTE_CAIDO` (502), `R
 ---
 
 ## 2. Agentes reales de este repo
+
+### Lumen — chat copiloto de consulta · `:5001` · `Lumen_buscador/lumen_agente_04/` ✅ (llegó 13/07)
+
+| Ruta | Body | Devuelve |
+|---|---|---|
+| `GET /` | — | health + sesiones activas |
+| `POST /chat` | `{"pregunta": "...", "sesion_id": "..."(opcional)}` | `{resumen, datos_detectados, sesion_id, ...}` — **guardar `sesion_id`** y reenviarlo para mantener la memoria de conversación |
+| `POST /chat/reset` | `{"sesion_id": "..."}` | olvida esa conversación |
+
+Lee Neon real (readonly). Necesita `DATABASE_URL` y `GROQ_API_KEY`/`LLM_PROVIDER=groq` (del `.env` común o de su `.env` local en `lumen_agente_04/`).
 
 ### Operis — autocompletar briefing · `:5002` · `Operis_autocompletado/agente_operis_llm/` ✅ (contrato V2)
 
@@ -126,7 +136,6 @@ agentes no pueden escribir; la escritura real seguirá siendo del backend Expres
 
 | Agente | Ruta reservada en el gateway | Estado |
 |---|---|---|
-| Lumen (chat copiloto) | `POST /agentes/lumen/chat` + `/chat/reset` | 🧩 stub activo con contrato v4; al llegar el definitivo, arrancarlo en :5001 y registrarlo |
 | Gestor de correos | `/agentes/correos/...` | ⚠️ 501; contrato por definir al recibirlo |
 | Alertas (Roberto) | `/agentes/alertas/...` | ⚠️ 501; pendiente de definir desde v4 |
 
@@ -145,6 +154,6 @@ agentes no pueden escribir; la escritura real seguirá siendo del backend Expres
 
 | Versión | Fecha | Qué |
 |---|---|---|
-| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. |
+| v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegó Lumen definitivo y quedó conectado al gateway (su stub se retiró). |
 | v4 | 2026-07-10 | Backend unificado de data :5003 en-proceso (Lumen+Operis). |
 | v3 | 2026-07-09 | Primer inventario real (backend Express, Lumen :5001, Operis :5002 V1). |

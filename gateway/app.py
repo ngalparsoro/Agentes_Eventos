@@ -41,6 +41,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # borra su entrada de STUBS_PENDIENTES. Nada más.
 # ---------------------------------------------------------------------
 AGENTES = {
+    "lumen": {"base": "http://127.0.0.1:5001", "health": "/"},
     "operis": {"base": "http://127.0.0.1:5002", "health": "/"},
     "jano": {"base": "http://127.0.0.1:8001", "health": "/health"},
     "vigil": {"base": "http://127.0.0.1:8000", "health": "/health"},
@@ -66,50 +67,17 @@ def _error(codigo: str, mensaje: str, http: int = 400) -> JSONResponse:
 
 
 # ---------------------------------------------------------------------
-# Stub de Lumen: contrato real del chat (endpoints_v4.md) con datos de
-# ejemplo. El front puede montar su pantalla de chat contra esto HOY.
-# ---------------------------------------------------------------------
-@app.post("/agentes/lumen/chat")
-async def stub_lumen_chat(request: Request):
-    cuerpo = {}
-    try:
-        cuerpo = await request.json()
-    except Exception:
-        pass
-    if not isinstance(cuerpo, dict) or not (cuerpo.get("pregunta") or "").strip():
-        return _error("CAMPO_OBLIGATORIO", "El campo 'pregunta' es obligatorio.")
-    return {
-        "_stub": True,
-        "resumen": "[STUB] Lumen aún no está conectado en este repo. Esta respuesta tiene la forma real del contrato para que el front pueda integrar la pantalla de chat.",
-        "datos_detectados": {},
-        "sesion_id": cuerpo.get("sesion_id") or "sesion-stub-0001",
-        "id_evento_actual": None,
-        "requiere_validacion_humana": True,
-    }
-
-
-@app.post("/agentes/lumen/chat/reset")
-async def stub_lumen_reset(request: Request):
-    cuerpo = {}
-    try:
-        cuerpo = await request.json()
-    except Exception:
-        pass
-    return {"_stub": True, "ok": True, "sesion_id": (cuerpo or {}).get("sesion_id")}
-
-
-# ---------------------------------------------------------------------
 # Alias de compatibilidad v4 (mismas rutas en la raíz): el front actual
 # puede migrar al gateway cambiando solo la URL base.
 # ---------------------------------------------------------------------
 @app.post("/chat")
 async def alias_chat(request: Request):
-    return await stub_lumen_chat(request)
+    return await proxy_agente("lumen", "chat", request)
 
 
 @app.post("/chat/reset")
 async def alias_chat_reset(request: Request):
-    return await stub_lumen_reset(request)
+    return await proxy_agente("lumen", "chat/reset", request)
 
 
 @app.post("/autocompletar")
@@ -133,8 +101,7 @@ async def salud():
                 estado[nombre] = "ok" if r.status_code == 200 else f"http {r.status_code}"
             except httpx.HTTPError:
                 estado[nombre] = "no responde"
-    # los stubs siempre están "disponibles" (viven en este proceso)
-    estado["lumen"] = "stub"
+    # los pendientes sin agente detrás se marcan como tales
     for nombre in STUBS_PENDIENTES:
         estado[nombre] = "pendiente"
     return {"servicio": "gateway de data", "puerto": os.getenv("PUERTO_GATEWAY", "5003"), "agentes": estado}
@@ -147,7 +114,7 @@ def raiz():
         "documentacion": "/docs",
         "salud": "/salud",
         "agentes_reales": sorted(AGENTES),
-        "stubs": ["lumen"] + sorted(STUBS_PENDIENTES),
+        "pendientes": sorted(STUBS_PENDIENTES),
     }
 
 

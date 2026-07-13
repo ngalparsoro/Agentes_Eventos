@@ -1,10 +1,10 @@
 # prompt_validar_salida.md — Lumen
 
-Último paso antes de devolver la respuesta al orquestador. No genera contenido nuevo: audita lo ya
+Último paso antes de devolver la respuesta. No genera contenido nuevo: audita lo ya
 redactado por `prompt_generar_respuesta.md` contra las reglas duras del agente.
 
 ```
-Audita la siguiente respuesta generada por Lumen antes de que se envíe al orquestador. No la reescribas
+Audita la siguiente respuesta generada por Lumen antes de que se envíe. No la reescribas
 salvo para corregir un incumplimiento de las reglas; si tienes que corregirla, hazlo con el mínimo
 cambio posible y explica qué corregiste.
 

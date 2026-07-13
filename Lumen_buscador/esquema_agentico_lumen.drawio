@@ -1,0 +1,83 @@
+<mxfile host="app.diagrams.net" agent="5.0">
+  <diagram name="Agente Lumen" id="lumen-esquema-agentico">
+    <mxGraphModel dx="1703" dy="940" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#dde3e9;strokeWidth=1.5;shadow=1;" value="" vertex="1">
+          <mxGeometry height="770" width="660" x="247" y="39" as="geometry" />
+        </mxCell>
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#12181f;" value="Agente Lumen" vertex="1">
+          <mxGeometry height="30" width="220" x="270" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="accent" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#2563eb;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="3" width="111" x="270" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11.5;fontColor=#7a828c;" value="Arquitectura interna · recorrido de una pregunta" vertex="1">
+          <mxGeometry height="18" width="320" x="270" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="boxEsquema" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fdeaf1;strokeColor=#9c1457;strokeWidth=2;fontColor=#6d0f3d;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;shadow=1;" value="&lt;b&gt;Esquema BD&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;font-weight:normal;color:#9c1457;&quot;&gt;esquema_bd.md&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="234" x="374" y="189" as="geometry" />
+        </mxCell>
+        <mxCell id="boxMemoria" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#e6f4e1;strokeColor=#2f7a2a;strokeWidth=2;fontColor=#1f4d1c;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;shadow=1;" value="&lt;b&gt;Memoria&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;font-weight:normal;color:#2f7a2a;&quot;&gt;src/memoria.py&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="234" x="634" y="189" as="geometry" />
+        </mxCell>
+        <mxCell id="boxReglas" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#eae8fc;strokeColor=#4b3f9e;strokeWidth=2;fontColor=#2f2570;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;shadow=1;" value="&lt;b&gt;Reglas y permisos&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;font-weight:normal;color:#4b3f9e;&quot;&gt;config/permisos.py&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="234" x="374" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="boxDatos" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fdecd6;strokeColor=#8a5a1f;strokeWidth=2;fontColor=#6b4415;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;shadow=1;" value="&lt;b&gt;Lectura de datos&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;font-weight:normal;color:#8a5a1f;&quot;&gt;lectura_datos.py&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="234" x="634" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="circleNucleo" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#0b2f52;strokeColor=none;fontColor=#ffffff;align=center;verticalAlign=middle;shadow=1;" value="&lt;b style=&quot;font-size:19px;&quot;&gt;Núcleo&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:13px;font-weight:normal;color:#dbe7f2;&quot;&gt;nucleo.py&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;font-weight:normal;color:#dbe7f2;&quot;&gt;+ llm.py (Groq)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10.5px;font-style:italic;font-weight:normal;color:#9fc6e8;&quot;&gt;+ clasificador de respaldo (nuevo)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="312" width="312" x="465" y="328" as="geometry" />
+        </mxCell>
+        <mxCell id="circleEquipo" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#155390;strokeColor=none;fontColor=#ffffff;align=center;verticalAlign=middle;shadow=1;" value="&lt;b style=&quot;font-size:17px;&quot;&gt;Equipo Mitumi&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:13px;font-weight:normal;color:#dbe7f2;&quot;&gt;main.py&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:13px;font-weight:normal;color:#dbe7f2;&quot;&gt;servidor.py&lt;/span&gt;" vertex="1">
+          <mxGeometry height="274" width="274" x="20" y="347" as="geometry" />
+        </mxCell>
+        <mxCell id="edgeConsulta" edge="1" parent="1" source="boxEsquema" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#161b22;fontStyle=1;fontSize=13;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.083;entryY=0.327;entryDx=0;entryDy=0;entryPerimeter=0;" target="circleNucleo" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;consulta&lt;/font&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edgeRecuerda" edge="1" parent="1" source="boxMemoria" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#161b22;fontStyle=1;fontSize=13;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.917;entryY=0.327;entryDx=0;entryDy=0;entryPerimeter=0;" target="circleNucleo" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;recuerda&lt;/font&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edgeReglas" edge="1" parent="1" source="boxReglas" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#161b22;fontStyle=1;fontSize=13;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.08;entryY=0.712;entryDx=0;entryDy=0;entryPerimeter=0;" target="circleNucleo" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;reglas&lt;/font&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edgeDatos" edge="1" parent="1" source="boxDatos" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#161b22;fontStyle=1;fontSize=13;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.917;entryY=0.744;entryDx=0;entryDy=0;entryPerimeter=0;" target="circleNucleo" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;datos&lt;/font&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edgePrompt" edge="1" parent="1" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#3a4149;fontStyle=0;fontSize=12;labelBackgroundColor=#ffffff;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" target="circleNucleo" value="prompt">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="280" y="439" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edgeResolucion" edge="1" parent="1" source="circleNucleo" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#3a4149;fontStyle=0;fontSize=12;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="circleEquipo" value="resolución">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edgeFeedback" edge="1" parent="1" source="circleEquipo" style="html=1;endArrow=block;rounded=0;curved=0;strokeColor=#8a8f98;strokeWidth=2;fontColor=#3a4149;fontStyle=0;fontSize=11.5;labelBackgroundColor=#ffffff;exitX=1;exitY=0.65;exitDx=0;exitDy=0;entryX=0;entryY=0.65;entryDx=0;entryDy=0;" target="circleNucleo" value="feedback (nuevo/salir)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edgeGuarda" edge="1" parent="1" source="circleEquipo" style="html=1;endArrow=block;rounded=0;curved=0;dashed=1;strokeColor=#a7adb5;strokeWidth=1.5;fontColor=#7a828c;fontStyle=2;fontSize=11.5;labelBackgroundColor=#ffffff;exitX=0.708;exitY=0.03;exitDx=0;exitDy=0;exitPerimeter=0;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;guarda*&lt;/font&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="214" y="260" />
+            </Array>
+            <mxPoint x="370" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="footLine" parent="1" style="line;strokeColor=#e3e7ec;strokeWidth=1.5;html=1;" value="" vertex="1">
+          <mxGeometry height="1" width="605" x="247" y="835" as="geometry" />
+        </mxCell>
+        <mxCell id="foot1" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11.5;fontColor=#5b6570;" value="Círculos = orquestación (nucleo.py) y usuario · cajas = memoria, datos y reglas de Lumen." vertex="1">
+          <mxGeometry height="20" width="620" x="247" y="845" as="geometry" />
+        </mxCell>
+        <mxCell id="foot2" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11.5;fontColor=#5b6570;" value="* Discontinua = paso del esquema genérico que Lumen no usa (agente de solo lectura)." vertex="1">
+          <mxGeometry height="20" width="620" x="247" y="867" as="geometry" />
+        </mxCell>
+        <mxCell id="foot3" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11.5;fontColor=#5b6570;whiteSpace=wrap;" value="Clasificador LLM de respaldo (nuevo): prompt_clasificar_consulta.md → nucleo.py, solo si falta id_evento y nada determinista reconoce la pregunta (ver README, sección 12 bis)." vertex="1">
+          <mxGeometry height="40" width="620" x="247" y="889" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

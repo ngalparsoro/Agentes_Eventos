@@ -8,7 +8,7 @@ donde sale cada dato. Si la conexion falla, estas funciones no inventan ni aprox
 dejan que DbBackendError suba hasta src/nucleo.py, que lo convierte en un bloqueo explicito.
 
 La tabla `usuarios` esta bloqueada aqui a nivel de codigo, no solo por prompt: es defensa en
-profundidad ante un fallo del LLM o del orquestador. integrations/db_backend.py hace la misma
+profundidad ante un fallo del LLM o de la capa que lo invoque. integrations/db_backend.py hace la misma
 comprobacion de forma independiente (defensa en dos capas).
 """
 

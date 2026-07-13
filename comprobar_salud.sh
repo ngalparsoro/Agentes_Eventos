@@ -21,6 +21,7 @@ comprobar() {
 
 echo "— salud de los servicios —"
 comprobar "backend agentes :5004" "http://127.0.0.1:5004/"
+comprobar "Lumen :5001         " "http://127.0.0.1:5001/"
 comprobar "Operis :5002        " "http://127.0.0.1:5002/"
 comprobar "Jano :8001          " "http://127.0.0.1:8001/health"
 comprobar "Vigil :8000         " "http://127.0.0.1:8000/health"

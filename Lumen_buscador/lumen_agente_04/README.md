@@ -1,7 +1,7 @@
 # Agente 04 — Lumen (Copilot de consulta)
 
 Proyecto: **Ágora — arquitectura de agentes de Mitumi**
-Tipo de componente: **Agente especializado, ejecutable localmente, dependiente del orquestador**
+Tipo de componente: **Agente especializado autónomo, ejecutable localmente**
 Versión plantilla base: **1.1.0** (adaptada de la plantilla común de Gestión Inteligente de Eventos)
 
 ---
@@ -15,11 +15,14 @@ cd lumen_agente_04
 python main.py
 ```
 
-En la arquitectura final no actúa de forma autónoma. Lo llama el **agente orquestador** de Ágora
-mediante la interfaz común `ejecutar_agente(payload)`:
+Lumen funciona de forma **autónoma**: se ejecuta por sí mismo (chat de consola con `main.py`, o API
+HTTP con `servidor.py` para el frontend React). Además expone una interfaz de integración estable,
+`ejecutar_agente(payload)`, por si otro programa quiere invocarlo en el futuro:
 
 ```text
-Backend / Orquestador
+Usuario interno de Mitumi  (consola  o  frontend React)
+        ↓
+main.py  /  servidor.py
         ↓
 ejecutar_agente(payload)
         ↓
@@ -27,7 +30,7 @@ Lumen (Agente 04 · Copilot)
         ↓
 Respuesta estructurada (solo lectura)
         ↓
-Orquestador / Backend / Usuario interno de Mitumi
+Usuario interno de Mitumi
 ```
 
 Lumen es un agente **de consulta**, no de acción: analiza, interpreta y responde. Nunca guarda, nunca
@@ -37,7 +40,7 @@ ejecuta, nunca decide por otro agente.
 
 ## 1. Regla crítica no modificable
 
-La estructura interna puede adaptarse, **excepto la comunicación con el orquestador**:
+La estructura interna puede adaptarse, **excepto el punto de integración**:
 
 ```text
 lumen_agente_04/src/agente.py
@@ -49,7 +52,7 @@ Debe exponer siempre:
 def ejecutar_agente(payload: dict) -> dict:
     """
     Punto de entrada común del agente Lumen.
-    Lo usa el main.py local, el orquestador o una futura API.
+    Lo usan el main.py local, servidor.py o una futura API.
     """
     ...
 ```
@@ -80,10 +83,10 @@ probarla de forma aislada.
 | **Equipo responsable** | Raúl, Eduardo |
 | **Fase del evento que cubre** | Transversal — consulta sobre todas las fases (espacios, presupuesto, ponentes, clientes) |
 | **Propósito en una frase** | Responder en lenguaje natural las preguntas del equipo de Mitumi sobre los datos ya existentes en Ágora, sin modificar nada. |
-| **Tipo de agente** | Especializado, dependiente del orquestador |
+| **Tipo de agente** | Especializado, autónomo |
 | **Modo por defecto** | `consulta` (solo lectura — no aplican `propuesta` ni `ejecucion_controlada`, ver §9) |
 | **Estado** | MVP |
-| **Última actualización** | 10/07/2026 |
+| **Última actualización** | 13/07/2026 |
 
 ---
 
@@ -127,7 +130,7 @@ Lumen **no debe**:
 - modificar fechas del evento;
 - ejecutar ninguna acción irreversible o reversible sobre la plataforma;
 - invocar directamente a otros agentes (Gestor de correos, Operis, Hermes, Vigil);
-- sustituir al orquestador ni al backend.
+- sustituir al backend de la plataforma.
 
 Límites propios de Lumen (más estrictos que la base común, por ser agente de solo consulta):
 
@@ -165,8 +168,11 @@ lumen_agente_04/
 │
 ├── prompts/
 │   ├── prompt_sistema.md              ← rol, permisos de solo lectura, tono, formato de salida
-│   ├── prompt_clasificar_consulta.md  ← clasifica la pregunta entrante (referencia; hoy la
-│   │                                     clasificacion real es determinista en src/nucleo.py)
+│   ├── prompt_clasificar_consulta.md  ← clasifica la pregunta entrante. La clasificacion
+│   │                                     PRINCIPAL sigue siendo determinista por palabras clave
+│   │                                     en src/nucleo.py; este prompt esta CONECTADO como
+│   │                                     respaldo del LLM (ver seccion 12 bis) y solo se llama
+│   │                                     cuando esa clasificacion determinista no reconoce nada.
 │   ├── prompt_generar_respuesta.md    ← redacta la respuesta final cuando se usa el LLM
 │   └── prompt_validar_salida.md       ← referencia de la auditoria anti-fuga (real en src/validaciones.py)
 │
@@ -174,9 +180,10 @@ lumen_agente_04/
 │   ├── __init__.py
 │   ├── agente.py               ← punto de entrada OBLIGATORIO: ejecutar_agente(payload).
 │   │                               Reexporta la logica real desde nucleo.py (no tocar mas alla de eso).
-│   ├── nucleo.py               ← logica real: clasificacion, orquestacion de la consulta y la
+│   ├── nucleo.py               ← logica real: clasificacion, coordinacion de la consulta y la
 │   │                               respuesta. Incluye consultas transversales (eventos por estado,
-│   │                               conteos/listados generales) ademas de consultas por id_evento.
+│   │                               conteos/listados generales) ademas de consultas por id_evento,
+│   │                               y el clasificador LLM de respaldo (ver seccion 12 bis).
 │   ├── memoria.py               ← memoria de conversacion (capa POR ENCIMA de ejecutar_agente, sin
 │   │                               tocar su contrato). La usan main.py (por proceso) y servidor.py
 │   │                               (por sesion de navegador), cada uno con sus propias instancias.
@@ -233,6 +240,8 @@ DATABASE_ROLE=readonly
 TABLAS_EXCLUIDAS=usuarios
 FLASK_DEBUG=false                       # servidor.py: debug del reloader de Flask. OFF por defecto (RCE si se expone)
 PORT=5001                               # servidor.py: puerto de la API HTTP
+SESION_TTL_HORAS=6                      # servidor.py: horas de inactividad antes de purgar una sesion sola (ver §14)
+CLASIFICADOR_LLM_RESPALDO=true          # src/nucleo.py: respaldo LLM de clasificacion (ver §12 bis); false = solo deterministico
 ```
 
 `.gitignore` debe incluir `.env`, `*.log`, `outputs/`, `data/rag/indice/`. La API key y la cadena
@@ -345,10 +354,16 @@ de código ni se sube al repositorio. Si esa contraseña se ha compartido por un
      posibles fences de markdown antes de parsear (`src/nucleo._parsear_json_llm`); si aun asi el
      LLM no esta configurado, falla, o no devuelve JSON valido, se hace fallback automatico al
      resumen determinista del evento - Lumen nunca se queda sin responder por un fallo del LLM.
-5. src/validaciones.py audita SIEMPRE la salida final (venga del LLM o de las reglas): fuerza
+5. Si NO hay id_evento y ninguna regla determinista de arriba reconocio nada (ver seccion 12 bis):
+   clasificador LLM de respaldo. Se le pide al LLM (prompts/prompt_clasificar_consulta.md) UNA
+   etiqueta de una lista cerrada de 6 categorias -nunca SQL, nunca datos- para redirigir la
+   pregunta a una de las ramas deterministas ya existentes. Si el LLM no esta disponible, falla, o
+   devuelve una categoria fuera de esa lista, se ignora sin mas: el comportamiento es identico al
+   de no tener este respaldo conectado.
+6. src/validaciones.py audita SIEMPRE la salida final (venga del LLM o de las reglas): fuerza
    acciones_propuestas/borradores_generados vacios y bloquea cualquier fuga sobre `usuarios` o
    credenciales de acceso, incluso si el LLM alucinase o el usuario intentase manipular el prompt.
-6. main.py imprime el resultado y lo guarda en outputs/respuestas_json/salida_demo.json.
+7. main.py imprime el resultado y lo guarda en outputs/respuestas_json/salida_demo.json.
 ```
 
 El `SELECT` real lo construye codigo determinista en `src/lectura_datos.py` — el LLM nunca genera SQL
@@ -361,7 +376,7 @@ saltarse las restricciones de acceso a datos.
 ```text
 prompts/
 ├── prompt_sistema.md              ← rol, permisos de solo lectura, tono, formato de salida
-├── prompt_clasificar_consulta.md  ← clasifica la pregunta entrante
+├── prompt_clasificar_consulta.md  ← clasifica la pregunta entrante (respaldo LLM, ver sección 12 bis)
 ├── prompt_generar_respuesta.md    ← redacta la respuesta grounded en los datos recuperados
 └── prompt_validar_salida.md       ← auditoría final anti-alucinación y anti-escritura
 ```
@@ -377,6 +392,68 @@ integrations/verificar_conexion_bd.py  ← script manual para comparar el esquem
 ```
 
 Las integraciones de Lumen solo leen. No existe ninguna integración de escritura en este agente.
+
+**Nota sobre "RAG":** el nombre de la carpeta (`data/rag/`) es heredado de la plantilla común del
+proyecto, pero Lumen **no implementa RAG en el sentido técnico** (no hay embeddings, ni índice
+vectorial, ni búsqueda por similitud semántica). `esquema_bd.md` es documentación estática del
+esquema, siempre igual, que se usa como referencia fija — no se recupera dinámicamente por
+parecido con la pregunta. Los datos de negocio (eventos, presupuestos, ponentes...) son
+estructurados y viven en Postgres con relaciones conocidas; para ese caso, una consulta SQL
+determinista (`src/lectura_datos.py` → `integrations/db_backend.py`) es más precisa, más rápida y
+más auditable que una recuperación semántica aproximada. Un RAG vectorial real solo se
+justificaría si Lumen tuviera que responder sobre documentos no estructurados (contratos, actas en
+PDF...), que no es el caso hoy. Ver también
+`Lumen_esquema_y_guia_principiantes.html`, sección 11, para el razonamiento completo.
+
+---
+
+## 12 bis. Clasificador LLM de respaldo
+
+`prompts/prompt_clasificar_consulta.md` está conectado en `src/nucleo.py`
+(`_clasificar_con_llm_respaldo` / `_responder_con_clasificador_respaldo`). No sustituye a la
+clasificación por palabras clave: es un respaldo que solo entra en juego cuando se cumplen **las
+dos** condiciones a la vez:
+
+1. La pregunta no trae `id_evento` (consulta transversal, no sobre un evento concreto).
+2. Ninguna regla determinista de la sección 1 de `ejecutar_agente()` reconoció nada — ni los
+   bloqueos de seguridad (`usuarios`, escritura), ni `billete`/`ponente`, ni los sinónimos de
+   `SINONIMOS_ESTADO_EVENTO` / `PALABRAS_TRANSVERSAL_*`.
+
+Cuando se cumplen las dos, se le pide al LLM **una sola etiqueta** de una lista cerrada de 6
+categorías (`consulta_datos_evento`, `consulta_metricas_globales`, `aclaracion_necesaria`,
+`fuera_de_alcance_escritura`, `fuera_de_alcance_usuarios`, `no_relacionada` — el enum exacto del
+prompt). Esa etiqueta solo decide a qué rama determinista ya existente se redirige la pregunta:
+
+| Categoría devuelta por el LLM | Qué hace Lumen |
+|---|---|
+| `consulta_metricas_globales` | Reutiliza `_responder_consulta_transversal_eventos` (vuelve a leer la BD real; el LLM no aporta ningún dato) |
+| `consulta_datos_evento` / `aclaracion_necesaria` | Pide el nombre o `id_evento` del evento |
+| `fuera_de_alcance_escritura` | Mismo bloqueo que la detección por palabras clave, `nivel_riesgo: "medio"` |
+| `fuera_de_alcance_usuarios` | Mismo bloqueo que la detección por palabras clave, `nivel_riesgo: "alto"` |
+| `no_relacionada` | Cae al mensaje fijo de siempre: *"Esa información no está en Mitumi. Reformula tu consulta."* |
+
+Garantías de seguridad y de robustez:
+
+- **El LLM nunca genera SQL ni aporta datos**, solo una etiqueta de enrutado — la consulta real a
+  la BD la sigue haciendo exclusivamente `src/lectura_datos.py`, igual que en el resto del agente.
+- **Los bloqueos de seguridad siguen ganando siempre.** Este respaldo solo se intenta cuando la
+  pregunta NO trae `id_evento` y ya pasó, sin activarse, por los bloqueos deterministas de
+  `usuarios`/escritura de la sección 1 — esos bloqueos se evalúan primero y en código, nunca
+  dependen de que el LLM "se porte bien". Las categorías `fuera_de_alcance_*` del respaldo son una
+  red de seguridad adicional para preguntas redactadas de una forma que las palabras clave no
+  cubrían, no el primer filtro.
+- **Etiqueta fuera del enum, JSON inválido, o LLM caído/sin API key → se ignora por completo.** El
+  código valida que `categoria` esté en la lista cerrada de 6 valores; si no lo está, o si el LLM
+  falla, el comportamiento es idéntico al de antes de conectar este respaldo (mensaje fijo de la
+  sección 3 de `ejecutar_agente()`). Nunca se adivina ni se inventa una respuesta.
+- **Se puede desactivar sin tocar código:** `CLASIFICADOR_LLM_RESPALDO=false` en `.env` fuerza
+  determinismo total (por ejemplo, para pruebas automatizadas repetibles).
+
+Motivación (pros/contras completos en `02_test_jurado_lumen.docx`, pregunta 33): al acotarlo a
+"solo entra cuando el código no reconoció nada", el coste de tokens, la latencia y la pérdida de
+determinismo que conlleva el LLM solo se pagan en el porcentaje de preguntas que hoy caen en el
+mensaje genérico — no en todas. Sigue sin resolver la otra limitación conocida del MVP
+(persistencia de sesiones entre reinicios, ver sección 16).
 
 ---
 
@@ -408,7 +485,8 @@ python main.py
 (`src/memoria.py`) — recuerda el último evento del que se habló y lo reutiliza en preguntas de
 seguimiento ("¿y su presupuesto?", "ese evento"). El evento se resuelve por UUID o número
 explícito, por nombre ("del evento Congreso Energía") o por memoria. Escribe `nuevo` para
-olvidar el contexto, `salir` para terminar.
+olvidar el contexto sin cerrar la consola, o `salir` (`exit`/`quit`) para borrar la memoria de
+forma explícita y terminar el programa.
 
 `python main.py --demo`: un solo disparo — carga `inputs/payload_demo.json`, llama a
 `ejecutar_agente(payload)`, imprime la respuesta y la guarda en
@@ -419,8 +497,10 @@ un evento o pegar su UUID, lo resuelve por nombre/UUID. Los `id` reales son UUID
 `id_evento: 12` numérico se retiró porque no existía en la BD real y hacía fallar el demo.
 
 `python servidor.py`: API HTTP (Flask, puerto 5001) para el **frontend React**, con memoria de
-conversación por sesión (`sesion_id`) en vez de por proceso. Ver `GUIA_EJECUCION.md` sección 4.3
-para el contrato de `POST /chat` y `POST /chat/reset`.
+conversación por sesión (`sesion_id`) en vez de por proceso. Escribir `salir` (`exit`/`quit`)
+como mensaje normal en `POST /chat` borra esa sesión de `_sesiones` por completo (memoria
+eliminada de RAM); `POST /chat/reset` en cambio solo vacía el contexto sin cerrar la sesión. Ver
+`GUIA_EJECUCION.md` sección 4.3 para el contrato completo de ambos endpoints.
 
 ---
 
@@ -431,7 +511,9 @@ para el contrato de `POST /chat` y `POST /chat/reset`.
 | Falta `id_evento` en una consulta que sí lo necesita | `bloqueos_detectados` pidiendo el evento, no se adivina |
 | Se pregunta por la tabla `usuarios` o por credenciales de acceso | Bloqueo inmediato, `nivel_riesgo: "alto"`, `requiere_validacion_humana: true`, no se toca la BD |
 | Se pide una escritura disfrazada de pregunta ("¿puedes subir el presupuesto un 10%?") | Se bloquea la parte de escritura |
-| El dato no existe en los datos disponibles | Se declara explícitamente que no existe, no se aproxima |
+| El dato de un evento concreto no existe (p. ej. `id_evento` que no está en la BD) | Se declara explícitamente que ese evento no existe, no se aproxima |
+| La pregunta no tiene nada que ver con el dominio de Mitumi/Ágora (no hay `id_evento`, no se reconoce ningún tema de la plataforma, y el clasificador LLM de respaldo tampoco reconoce nada o confirma `no_relacionada`) | Respuesta fija y literal: **"Esa información no está en Mitumi. Reformula tu consulta."** (`src/nucleo.py`, rama 3). Aplica también cuando el LLM redacta y el dato pedido no está en `<datos_recuperados>` ni en el esquema (`prompts/prompt_sistema.md`, `prompts/prompt_generar_respuesta.md`) |
+| El clasificador LLM de respaldo devuelve JSON inválido, una categoría fuera del enum de 6, o falla/no está disponible | Se ignora por completo, sin reintentos: la pregunta sigue el mismo camino que si el respaldo no existiera (§12 bis) |
 | El LLM devuelve texto no estructurado (cuando se conecte el LLM real) | Reintento controlado vía `prompt_validar_salida.md`; si persiste, error controlado |
 | Consulta ambigua sin evento ni rango de fechas | Se pide aclaración mínima antes de consultar datos |
 | Integración con la BD falla | Se devuelve error, no se inventa una respuesta con datos "probables" |
@@ -481,11 +563,33 @@ para el contrato de `POST /chat` y `POST /chat/reset`.
       todas las tablas coinciden; la única diferencia (columna `presupuestos.observaciones`, que
       faltaba en el esquema esperado) ya está añadida en `esquema_bd.md` y en el script de
       verificación. La tabla `usuarios` existe y se confirma bloqueada.
-- [ ] Pendiente: extender la clasificacion de preguntas transversales al LLM (hoy es determinista
-      por palabras clave; funciona sin LLM, pero no entiende frases fuera de los sinónimos
-      cubiertos en `SINONIMOS_ESTADO_EVENTO`).
+- [x] Clasificador LLM de respaldo conectado (`prompts/prompt_clasificar_consulta.md` en
+      `src/nucleo.py`): la clasificación principal de preguntas transversales sigue siendo
+      determinista por palabras clave (funciona sin LLM), pero ahora, si no reconoce nada y no hay
+      `id_evento`, el LLM aporta una etiqueta de respaldo de una lista cerrada para rescatar
+      preguntas formuladas fuera de los sinónimos cubiertos en `SINONIMOS_ESTADO_EVENTO`. Ver §12
+      bis. Se puede desactivar con `CLASIFICADOR_LLM_RESPALDO=false` en `.env`.
 - [ ] Pendiente: persistencia de sesiones de `servidor.py` más allá de la memoria del proceso
-      (hoy se pierden si se reinicia el servidor — aceptado para esta fase de demo).
+      (hoy se pierden si se reinicia el servidor — aceptado para esta fase de demo). Cuando haga
+      falta, se resuelve moviendo `_sesiones` a un backend externo (Redis, con expiración nativa),
+      no a la BD de negocio de Postgres (`ALLOW_DB_WRITE=False` es una restricción permanente).
+- [x] Expiración de sesiones inactivas en `servidor.py` (TTL, `SESION_TTL_HORAS` en `.env`, 6h por
+      defecto): antes una sesión que el usuario abandonaba sin escribir "salir" (p. ej. cerrar la
+      pestaña) se quedaba en `_sesiones` para siempre mientras el proceso viviera — una fuga de
+      memoria lenta con tráfico real. Ahora `_purgar_sesiones_expiradas()` se ejecuta en cada
+      `GET /` y `POST /chat` y borra solas las sesiones inactivas más de `SESION_TTL_HORAS`.
+- [x] Memoria temporal con borrado explícito por palabra clave: `salir`/`exit`/`quit` borra la
+      memoria en RAM en `main.py` (y termina el proceso) y borra la sesión completa de
+      `servidor.py` (distinto de `POST /chat/reset`, que solo vacía el contexto sin cerrar la
+      sesión). Ver §14 y `GUIA_EJECUCION.md` §4.1/§4.3.
+- [x] Confirmado y documentado que Lumen no usa RAG vectorial (embeddings/búsqueda semántica):
+      usa lectura directa a BD estructurada + un documento de esquema estático como referencia.
+      Razonamiento completo en §12 y en `Lumen_esquema_y_guia_principiantes.html` (sección 11).
+- [x] Respuesta fija para preguntas fuera del dominio de datos de Mitumi: "Esa información no está
+      en Mitumi. Reformula tu consulta.", literal y sin variaciones, tanto en la rama
+      determinista (`src/nucleo.py`) como en la instrucción dada al LLM (`prompts/prompt_sistema.md`,
+      `prompts/prompt_generar_respuesta.md`) como en la categoría `no_relacionada` del clasificador
+      LLM de respaldo (§12 bis). Ver §15.
 
 ## Nota sobre las pruebas de este entregable
 

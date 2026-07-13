@@ -62,6 +62,7 @@ lanzar() {
 
 # --- servicios -------------------------------------------------------
 lanzar backend_5004  backend                                   "$PYTHON app.py"
+lanzar lumen_5001    Lumen_buscador/lumen_agente_04             "$PYTHON servidor.py"
 lanzar operis_5002   Operis_autocompletado/agente_operis_llm   "$PYTHON servidor.py"
 lanzar jano_8001     Jano_transporte                           "$PYTHON serve_demo_mercurio.py"
 lanzar vigil_8000    Vigil_busquedaconcursos                   "$PYTHON serve_demo.py"

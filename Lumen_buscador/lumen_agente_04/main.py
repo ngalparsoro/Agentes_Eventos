@@ -86,6 +86,11 @@ def modo_chat():
         if not pregunta:
             continue
         if pregunta.lower() in {"salir", "exit", "quit"}:
+            # Borrado explicito de la memoria en RAM antes de terminar (no solo confiar en que el
+            # fin del proceso se la lleve por delante) -- mismo comportamiento, ahora tambien
+            # explicito, que la sesion en servidor.py cuando se escribe "salir" en el chat.
+            memoria.reiniciar()
+            print("(memoria de la conversacion eliminada. Hasta luego)")
             break
         if pregunta.lower() in {"nuevo", "reset", "olvida", "olvidalo"}:
             memoria.reiniciar()
