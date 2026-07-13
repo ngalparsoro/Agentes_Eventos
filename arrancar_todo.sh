@@ -61,6 +61,9 @@ lanzar() {
 }
 
 # --- servicios -------------------------------------------------------
+# (Garum, el gestor de correos, NO se arranca aquí: no es residente.
+#  Se dispara por ciclos con POST :5003/agentes/garum/ciclos o con
+#  "python3 main.py" en Garum_gestorcorreos/agente_gestor_correos/)
 lanzar backend_5004  backend                                   "$PYTHON app.py"
 lanzar lumen_5001    Lumen_buscador/lumen_agente_04             "$PYTHON servidor.py"
 lanzar operis_5002   Operis_autocompletado/agente_operis_llm   "$PYTHON servidor.py"
