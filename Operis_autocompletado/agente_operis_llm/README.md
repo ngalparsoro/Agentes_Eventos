@@ -544,7 +544,7 @@ Para autocompletado desde pantallas concretas del front, el agente acepta:
 }
 ```
 
-Tambien acepta `multipart/form-data` con un campo de archivo llamado `archivo`, `file`, `documento` o `upload`, mas `tipo_objetivo` y `campos_objetivo`. En pantallas como `cliente`, los campos no detectados se devuelven en `campos_no_detectados`, pero no generan `bloqueos_detectados`: el agente propone datos y la app valida antes de guardar.
+Tambien acepta `multipart/form-data` con un campo de archivo llamado `archivo`, `file`, `documento` o `upload`, mas `tipo_objetivo` y `campos_objetivo`. Los archivos soportados son `.txt`, `.pdf` y `.docx`; los PDF deben tener capa de texto seleccionable, porque no se aplica OCR a documentos escaneados. En pantallas como `cliente`, los campos no detectados se devuelven en `campos_no_detectados`, pero no generan `bloqueos_detectados`: el agente propone datos y la app valida antes de guardar.
 
 ```bash
 python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el coste

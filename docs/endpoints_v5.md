@@ -82,7 +82,7 @@ Lee Neon real (readonly). Necesita `DATABASE_URL` y `GROQ_API_KEY`/`LLM_PROVIDER
 | Ruta | Body | Devuelve |
 |---|---|---|
 | `GET /` | — | health + motor por defecto |
-| `POST /autocompletar` | `{"texto": "..."}` o `{"texto_briefing": "...", "id_evento": "...", "tipo_objetivo": "cliente", "bloques_a_actualizar": [...](opc), "historial_anterior": {...}(opc)}`. `id_evento` es opcional. | contrato común: `datos_detectados` (4 bloques: evento, cliente, ponentes, nota_bene), `bloqueos_detectados`, `requiere_validacion_humana: true` SIEMPRE |
+| `POST /autocompletar` | JSON flexible (`texto`, `texto_briefing`, `contenido` o `datos.texto_briefing`) o `multipart/form-data` con archivo `archivo`/`file`/`documento`/`upload` (`.txt`, `.pdf`, `.docx`), `tipo_objetivo` y `campos_objetivo`. `id_evento` es opcional. | contrato común: `datos_detectados` (4 bloques: evento, cliente, ponentes, nota_bene), `campos_detectados`, `campos_no_detectados`, `bloqueos_detectados`, `requiere_validacion_humana: true` SIEMPRE |
 
 Motor único `"llm"` (Groq). Si llega `id_evento` y no llega `historial_anterior`, intenta autocargar histórico de la BD; sin `id_evento`, extrae desde cero.
 El front pinta la salida como **propuesta editable**, nunca la guarda solo.
@@ -377,4 +377,4 @@ El backend :5004 responde `{"ok": false, "message": "Base de datos no disponible
 `POST /agentes/operis/autocompletar` acepta body flexible. `id_evento` ya no es obligatorio:
 si llega, Operis intenta usar historico del evento; si no llega, procesa una extraccion
 inicial sin historico, util para pantallas como Cliente o Espacio. El texto puede llegar en
-`texto`, `texto_briefing`, `contenido` o `datos.texto_briefing`.
+`texto`, `texto_briefing`, `contenido`, `datos.texto_briefing` o `multipart/form-data` con un archivo llamado `archivo`, `file`, `documento` o `upload`. Formatos soportados: `.txt`, `.pdf` y `.docx`; los PDF escaneados sin capa de texto no se extraen porque no hay OCR.
