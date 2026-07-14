@@ -49,14 +49,14 @@ Documentación técnica completa (código, contratos, casos de prueba) en el pro
 ### 2.2 Qué NO hace (límites explícitos)
 - [x] **No escribe en la base de datos.** Solo devuelve un diccionario/JSON de propuesta.
 - [x] **No inventa ni deduce datos.** Lo que no aparece explícito en el texto se queda vacío (`""`/`[]`).
-- [x] **No propone eventos nuevos.** `id_evento` es obligatorio — el agente solo actualiza eventos que el backend ya haya creado.
+- [x] **No escribe ni crea eventos en BD.** `id_evento` es opcional en la capa HTTP: si llega, se usa para histórico; si no llega, se devuelve una propuesta de extracción inicial sin histórico.
 - [x] **No hace OCR en PDFs escaneados** — depende de que el documento tenga capa de texto.
 - [x] **No guarda ni carga el histórico por su cuenta.** Recibe `contexto.historial_anterior` ya cargado en el payload; quien lo guarda y se lo pasa es el backend, nunca el agente (`src/rag.py` sigue siendo un stub por este motivo).
 - [x] **No funciona sin `GROQ_API_KEY`.** Sin motor de reglas de respaldo, una clave ausente o el free tier agotado detienen la extracción por completo (antes, el motor de reglas seguía disponible sin coste).
 
 ### 2.3 Casos de uso fuera del alcance de `agente_operis`
 - Cumplimentar automáticamente y guardar sin revisión humana (viola la regla de oro).
-- Crear un evento nuevo desde cero (necesita un `id_evento` ya existente).
+- Crear o guardar un evento nuevo en BD. Sin `id_evento`, Operis solo extrae una propuesta inicial editable.
 - Cruzar o deducir datos entre varios documentos sin que se le pase el histórico explícitamente.
 - Coordinar con otros agentes — eso corresponde a un futuro orquestador, no a este agente.
 - Decidir qué campos actualizar automáticamente sin que el usuario lo indique (`bloques_a_actualizar` lo decide una persona, no el agente).
@@ -89,7 +89,7 @@ al 17 de octubre de 2026. Aforo de 350 personas. Presupuesto de 45.000
 euros, pendiente de aprobación interna. Cliente: TechCorp S.L."
 
 Proceso interno esperado:
-1. Se construye el payload con id_evento (OBLIGATORIO) y datos.texto_briefing.
+1. Se construye el payload con texto de entrada y, opcionalmente, id_evento si se quiere usar historico.
 2. ejecutar_agente(payload) valida el contrato (motor único: llm).
 3. src/llm.py llama a Groq con el esquema de 4 bloques.
 4. Se calcula qué campos obligatorios del bloque Evento faltan.
@@ -138,7 +138,7 @@ Sigue siendo un agente **de un solo paso** (sin bucle de razonamiento tipo ReAct
 | Entrada | Afecta a | Ejemplo |
 |---|---|---|
 | Texto del briefing | Todo el resultado | El documento pegado o subido |
-| `id_evento` | Obligatorio — sin él, el agente rechaza la petición | `"evt_001"` |
+| `id_evento` | Opcional — con él se usa histórico; sin él se hace extracción inicial | `"evt_001"` |
 | `datos.bloques_a_actualizar` | Qué bloques actualiza el LLM y cuáles copia literalmente del histórico | `["nota_bene"]` |
 | `contexto.historial_anterior` | Si está presente, el LLM fusiona en vez de partir de cero | Estado previo completo del evento |
 | Esquema de la BD (nombres de columna reales) | Estructura de `evento`/`cliente`/`ponentes` (no de `nota_bene`, que es un resumen calculado) | CSV de `Datos_alimentación_bbdd_Leire_Eduardo/` |
@@ -157,7 +157,7 @@ Antes de razonar, el documento (`.pdf`/`.docx`/`.txt`) se convierte a texto plan
 ### 4.4 Mecanismos de fallback
 - **Campo no encontrado** → `""`/`[]`, nunca se inventa.
 - **Sin `GROQ_API_KEY`** → error controlado (`ValueError`). Ya no hay motor de reglas de respaldo.
-- **`id_evento` ausente o vacío** → error de validación explícito, no se procesa nada.
+- **`id_evento` ausente o vacío** → permitido; se procesa como extracción inicial sin histórico.
 - **`bloques_a_actualizar` con un valor no reconocido** → error de validación (`BLOQUES_VALIDOS`: `evento`, `cliente`, `ponentes`, `nota_bene`).
 - **JSON inválido del LLM** → error controlado, nunca se "adivina" un JSON mal formado.
 
@@ -355,3 +355,11 @@ Estado: Resuelto — sys.stdout.reconfigure(encoding="utf-8") al inicio
 - [x] ¿Se puede reproducir una sesión fallida? — El motor único (`llm`) no es 100% determinista (`temperature=0` acota, no elimina la variabilidad) — ya no hay motor de reglas determinista como red de seguridad.
 - [x] ¿Están marcados los componentes no deterministas y sus salvaguardas? — Sí; sección 7.
 - [x] ¿Son honestos y explícitos los límites del agente? — Sí; sección 2, incluyendo el punto crítico sin resolver de cómo invoca el backend al agente (sección 8.3) y la limitación real de 1 ponente/evento en la BD (sección 8.2).
+# Nota actualizada 14/07/2026 - integracion Front/FS
+
+El endpoint HTTP `POST /autocompletar` acepta ahora body flexible. `id_evento` es opcional:
+si llega, se usa para cargar historico del evento; si no llega, la extraccion se trata como
+inicial y sin historico, lo que permite usar Operis desde pantallas independientes como
+Cliente o Espacio. El texto puede llegar en `texto`, `texto_briefing`, `contenido` o
+`datos.texto_briefing`. El agente sigue sin escribir en BD y la salida sigue siendo una
+propuesta con `requiere_validacion_humana=true`.

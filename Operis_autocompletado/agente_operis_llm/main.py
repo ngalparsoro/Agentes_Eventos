@@ -15,7 +15,8 @@ Uso:
                                                      motor llm (Groq)
     python main.py ruta/al/briefing.txt --id-evento evt_123
                                                   -> igual, con un id_evento
-                                                     concreto (por defecto:
+                                                     opcional para pruebas con
+                                                     historico (por defecto:
                                                      "evt_manual_001")
 
 Nota: esto es solo para pruebas/uso local en consola. ejecutar_agente(payload)
@@ -169,8 +170,8 @@ def main():
     )
     parser.add_argument("archivo", nargs="?", default=None, help="Ruta al briefing (.txt/.pdf/.docx)")
     parser.add_argument("--id-evento", default="evt_manual_001",
-                         help="id_evento del payload (obligatorio en el contrato; "
-                              "por defecto 'evt_manual_001' para pruebas locales).")
+                         help="id_evento opcional del payload; si llega, permite pruebas con historico "
+                              "(por defecto 'evt_manual_001' para pruebas locales).")
     parser.add_argument("--demo", action="store_true", help="Ejecuta inputs/payload_demo.json")
     args = parser.parse_args()
 

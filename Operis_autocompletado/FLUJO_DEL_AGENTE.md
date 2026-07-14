@@ -27,13 +27,13 @@ suficientemente fiable. Consecuencia práctica: el agente **no funciona sin
 ## Flujo general
 
 ```
-1. Se construye un payload (id_evento OBLIGATORIO, tipo_peticion,
+1. Se construye un payload (id_evento opcional, tipo_peticion,
    datos.texto_briefing, datos.bloques_a_actualizar opcional,
    contexto.historial_anterior opcional, modo...) -- main.py/app.py/servidor.py lo
    hacen para uso local; en producción lo haría el backend (sección "Pendiente" abajo).
 2. ejecutar_agente(payload)  [src/agente.py -> src/nucleo.py]
-3. src/validaciones.py valida el contrato: id_evento no vacío (y, si hay BD
-   conectada, verificado de verdad contra ella), motor debe ser "llm" si se indica,
+3. src/validaciones.py valida el contrato: si llega id_evento y hay BD
+   conectada, se verifica de verdad contra ella; motor debe ser "llm" si se indica,
    bloques_a_actualizar debe usar valores válidos.
 4. src/nucleo.py resuelve el histórico: el explícito del payload tiene prioridad; si
    no llega, y hay DATABASE_URL configurada, se autocarga el estado actual del

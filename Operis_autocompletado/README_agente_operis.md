@@ -135,7 +135,7 @@ Límites específicos actuales:
 
 - Requiere `GROQ_API_KEY`; el motor de reglas fue eliminado.
 - Solo admite el modo `propuesta`.
-- `id_evento` es obligatorio; no propone eventos nuevos desde cero.
+- `id_evento` es opcional en la capa HTTP; si llega, se usa para historico, y si no llega propone una extraccion inicial sin guardar nada.
 - Sin `DATABASE_URL` no comprueba la existencia real del evento ni autocarga histórico.
 - La BD actual relaciona como máximo una ponencia/ponente con cada evento, aunque el esquema de OPERIS acepta una lista.
 - El LLM está sujeto a límites de cuota y tokens por minuto de Groq.
@@ -270,7 +270,7 @@ Reglas específicas:
 
 | Campo | Regla |
 |---|---|
-| `id_evento` | Obligatorio y no vacío. Si la BD está disponible, debe existir. |
+| `id_evento` | Opcional. Si llega y la BD esta disponible, debe existir; si no llega, se procesa como extraccion inicial sin historico. |
 | `tipo_peticion` | Único valor admitido: `extraer_briefing`. |
 | `datos.texto_briefing` | Obligatorio y no vacío. |
 | `datos.groq_api_key` | Opcional; prevalece sobre la variable de entorno. |
@@ -442,7 +442,7 @@ Advertencia: la demo usa el LLM real y consume cuota de Groq.
 
 | Fallo | Comportamiento esperado |
 |---|---|
-| Falta `id_evento` | `ok=false` con error estructurado. |
+| Falta `id_evento` | Permitido en el endpoint HTTP; Operis procesa el texto como extraccion inicial sin historico. |
 | El evento no existe y hay BD disponible | Rechazar la petición. |
 | Falta `texto_briefing` | `ok=false`; no llamar al LLM. |
 | Petición distinta de `extraer_briefing` | Error controlado. |
@@ -462,7 +462,7 @@ Advertencia: la demo usa el LLM real y consume cuota de Groq.
 - El primer prototipo utilizó reglas deterministas y seis bloques.
 - El motor de reglas se eliminó tras validar el enfoque LLM.
 - El esquema se redujo a cuatro bloques y se añadió Nota Bene.
-- `id_evento` pasó a ser obligatorio porque OPERIS actualiza eventos creados previamente.
+- `id_evento` puede enviarse cuando OPERIS actualiza eventos creados previamente, pero ya no es obligatorio para extracciones iniciales.
 - Se añadió actualización parcial e histórico con modos `fusionar` y `sobrescribir`.
 - La protección de bloques se movió del prompt a Python para reducir tokens y evitar alteraciones.
 - Solo se envía al LLM la última versión del histórico.

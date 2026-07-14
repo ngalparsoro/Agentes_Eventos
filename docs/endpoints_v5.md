@@ -11,9 +11,10 @@ recogían (Jano y Vigil con API propia), un backend de datos para agentes (:5004
 misma URL y mismas rutas `/agentes/...` para el front, pero cada agente sigue siendo su
 propio servidor (se acabaron las colisiones de paquetes `src`/`config`).
 
-⚠️ **Aviso Operis:** la v3/v4 documentaban el motor `"reglas"` y el `texto_briefing` como único
-obligatorio. **Obsoleto**: el Operis de este repo es el contrato V2 — `id_evento` OBLIGATORIO
-y motor único `"llm"` (sin `GROQ_API_KEY` devuelve error controlado).
+**Aviso Operis:** la v3/v4 documentaban el motor `"reglas"` y `texto_briefing` como único
+campo de texto. **Actualizado 14/07/2026**: Operis usa motor único `"llm"` y body flexible.
+`id_evento` es opcional: si llega, permite usar histórico del evento; si no llega, procesa
+una extracción inicial sin histórico para pantallas como Cliente o Espacio.
 
 Leyenda: ✅ implementado y probado · 🔨 implementado, no probado · ⚠️ pendiente · 🧩 stub (forma real, datos de ejemplo)
 
@@ -81,9 +82,9 @@ Lee Neon real (readonly). Necesita `DATABASE_URL` y `GROQ_API_KEY`/`LLM_PROVIDER
 | Ruta | Body | Devuelve |
 |---|---|---|
 | `GET /` | — | health + motor por defecto |
-| `POST /autocompletar` | `{"id_evento": "..."` **(OBLIGATORIO)**`, "texto_briefing": "..."` **(obligatorio)**`, "bloques_a_actualizar": [...](opc), "historial_anterior": {...}(opc)}` | contrato común: `datos_detectados` (4 bloques: evento, cliente, ponentes, nota_bene), `bloqueos_detectados`, `requiere_validacion_humana: true` SIEMPRE |
+| `POST /autocompletar` | `{"texto": "..."}` o `{"texto_briefing": "...", "id_evento": "...", "tipo_objetivo": "cliente", "bloques_a_actualizar": [...](opc), "historial_anterior": {...}(opc)}`. `id_evento` es opcional. | contrato común: `datos_detectados` (4 bloques: evento, cliente, ponentes, nota_bene), `bloqueos_detectados`, `requiere_validacion_humana: true` SIEMPRE |
 
-Motor único `"llm"` (Groq). Sin `historial_anterior`, lo autocarga de la BD por `id_evento`.
+Motor único `"llm"` (Groq). Si llega `id_evento` y no llega `historial_anterior`, intenta autocargar histórico de la BD; sin `id_evento`, extrae desde cero.
 El front pinta la salida como **propuesta editable**, nunca la guarda solo.
 
 ### Jano — transporte y hotel para ponentes · `:8001` · `Jano_transporte/` ✅
@@ -203,12 +204,20 @@ Salida:
 
 ### Operis — `POST /agentes/operis/autocompletar`
 
-Entrada (`id_evento` y `texto_briefing` obligatorios):
+Entrada para evento existente (`id_evento` opcional, recomendado si se quiere histórico):
 ```json
 {
   "id_evento": "019f5b21-f482-78ef-b57a-8cfc9772fb40",
   "texto_briefing": "Evento para 200 personas en Bilbao el 20 de octubre…",
   "bloques_a_actualizar": ["evento", "nota_bene"]
+}
+```
+
+Entrada para autocompletar Cliente/Espacio sin evento:
+```json
+{
+  "tipo_objetivo": "cliente",
+  "texto": "Cliente: TechCorp S.L. Contacto: Laura Martinez, laura@techcorp.es, sector tecnologia."
 }
 ```
 
@@ -363,3 +372,9 @@ El backend :5004 responde `{"ok": false, "message": "Base de datos no disponible
 | v5 | 2026-07-13 | Inventario del repo Agentes_Eventos: gateway por proxy :5003 con stubs, Jano y Vigil documentados, backend :5004, Operis V2, mapa de puertos y .env común. Misma tarde: llegaron Lumen definitivo (conectado al gateway, stub retirado) y Garum gestor de correos (integrado por ciclos: `POST /agentes/garum/ciclos`). Confirmado que Vigil es el agente de alertas de la v4 → sin pendientes: mapa completo. Homogeneización posterior: `GET /health` uniforme en TODOS los servicios, errores siempre en JSON `{"error":true,codigo,mensaje}` (Jano/Vigil añaden `detail` por compatibilidad), Operis pasa a 127.0.0.1, Vigil devuelve 409 si ya hay ejecución en curso, backend responde 503 (no listas vacías) con la BBDD caída y usa pool de conexiones. Añadida §6: URLs de despliegue (local + Render) y ejemplos reales de entrada/salida por endpoint. |
 | v4 | 2026-07-10 | Backend unificado de data :5003 en-proceso (Lumen+Operis). |
 | v3 | 2026-07-09 | Primer inventario real (backend Express, Lumen :5001, Operis :5002 V1). |
+# Nota actualizada 14/07/2026 - Operis
+
+`POST /agentes/operis/autocompletar` acepta body flexible. `id_evento` ya no es obligatorio:
+si llega, Operis intenta usar historico del evento; si no llega, procesa una extraccion
+inicial sin historico, util para pantallas como Cliente o Espacio. El texto puede llegar en
+`texto`, `texto_briefing`, `contenido` o `datos.texto_briefing`.

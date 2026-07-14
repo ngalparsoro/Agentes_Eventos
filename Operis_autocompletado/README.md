@@ -50,9 +50,10 @@ de propuesta, nunca de escritura: `requiere_validacion_humana` SIEMPRE `true`.
 el agente ya **no funciona sin `GROQ_API_KEY`**, y ejecutarlo (incluido `main.py --demo`)
 consume tokens reales — ver `docs/ESTIMACION_TOKENS.md` para el coste medido.
 
-**`id_evento` ahora es obligatorio.** El agente ya no propone eventos nuevos desde cero:
-solo actualiza eventos que el backend ya haya creado. Si no hay `id_evento`, `ejecutar_agente`
-devuelve un error controlado.
+**`id_evento` ahora es opcional en la capa HTTP.** Si llega, Operis lo usa para cargar
+histórico del evento y fusionar datos. Si no llega, procesa una extracción inicial sin
+histórico, útil para pantallas independientes como Cliente o Espacio. El agente sigue
+sin escribir en BD: siempre devuelve una propuesta para validación humana.
 
 ---
 
@@ -405,7 +406,7 @@ agente_operis_llm/
 │   │                                BD, ver sección 5 y 8)
 │   ├── schemas.py               ← esquema de 4 bloques + historial + validación/avisos +
 │   │                                extraer_ultimo_estado (última versión del histórico)
-│   ├── validaciones.py          ← contrato de entrada (id_evento obligatorio y verificado
+│   ├── validaciones.py          ← contrato de entrada (id_evento opcional; se verifica si llega
 │   │                                contra la BD real si está disponible, bloques válidos,
 │   │                                motor único "llm"...)
 │   ├── llm.py                   ← único motor: Groq, prompt + histórico (solo última
@@ -472,7 +473,7 @@ ALLOW_AUTO_APPROVAL = False
 ```text
 1. Quien llame (main.py, app.py, servidor.py, o el futuro backend) construye el payload y
    llama a ejecutar_agente(payload) (src/agente.py).
-2. src/validaciones.py valida el contrato: id_evento obligatorio, motor debe ser "llm" si
+2. src/validaciones.py valida el contrato: id_evento opcional, motor debe ser "llm" si
    se indica, bloques_a_actualizar debe usar valores de BLOQUES_VALIDOS, etc.
 3. src/nucleo.py extrae texto_briefing, bloques_a_actualizar, historial_anterior y
    modo_actualizacion del payload, y llama a src/llm.py::extraer_briefing_llm.
@@ -527,9 +528,10 @@ además de las pestañas Evento/Cliente/Ponentes/JSON completo.
 pip install -r requirements_servidor.txt   # flask, flask-cors -- solo para esto
 python servidor.py
 ```
-Servidor HTTP fino para el frontend React: `GET /` (estado) y `POST /autocompletar` con
-`{"id_evento": "...", "texto_briefing": "...", "bloques_a_actualizar": [...], "historial_anterior": {...}}`
-(los dos últimos opcionales). Escucha en `http://localhost:5002` por defecto. No sustituye
+Servidor HTTP fino para el frontend React: `GET /` (estado) y `POST /autocompletar` con body flexible:
+`{"texto": "...", "tipo_objetivo": "cliente"}` o
+`{"id_evento": "...", "texto_briefing": "...", "bloques_a_actualizar": [...], "historial_anterior": {...}}`.
+`id_evento`, `bloques_a_actualizar` e `historial_anterior` son opcionales. Escucha en `http://localhost:5002` por defecto. No sustituye
 el contrato real (`ejecutar_agente(payload)`), es solo una capa HTTP encima.
 
 ```bash
@@ -543,7 +545,7 @@ python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el cos
 | Fallo | Comportamiento esperado |
 |---|---|
 | Falta `GROQ_API_KEY` | Error controlado (`ValueError`) — ya no hay motor de reglas de respaldo |
-| Falta `id_evento`, o va vacío/`null` | Error de validación: "id_evento es obligatorio..." |
+| Falta `id_evento`, o va vacío/`null` | Permitido: extracción inicial sin histórico del evento |
 | `bloques_a_actualizar` con un valor fuera de `BLOQUES_VALIDOS` | Error de validación explícito |
 | PDF escaneado sin capa de texto | Formulario en blanco — límite conocido, no hay OCR |
 | El LLM devuelve un JSON inválido | Error controlado (`ValueError`), nunca se "adivina" |
@@ -557,7 +559,7 @@ python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el cos
 
 - [x] `README.md` actualizado a la arquitectura de 4 bloques + Nota Bene.
 - [x] `src/agente.py` con `ejecutar_agente(payload)` (reexporta `src/nucleo.py`), docstring al día.
-- [x] `src/schemas.py`, `src/validaciones.py`, `src/llm.py`, `src/nucleo.py` — motor único `llm`, `id_evento` obligatorio, histórico y bloques parciales.
+- [x] `src/schemas.py`, `src/validaciones.py`, `src/llm.py`, `src/nucleo.py` — motor único `llm`, `id_evento` opcional en HTTP, histórico si existe y bloques parciales.
 - [x] `prompts/prompt_sistema.md` completo (antes se cortaba a mitad del bloque Cliente — bug corregido) con instrucciones de los 4 bloques + ejemplo.
 - [x] `construir_prompt_sistema()` usa `.replace()`, no `.format()` (el prompt tiene JSON de ejemplo con llaves literales que rompían `.format()`).
 - [x] `inputs/payload_demo.json` con `id_evento` válido.
@@ -567,9 +569,16 @@ python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el cos
 - [x] `docs/estimacion_tokens.py` mide tokens reales (ya no estima con `tiktoken` sobre una salida inventada) — `docs/ESTIMACION_TOKENS.md` regenerado.
 - [x] **Conexión a la BD real (Neon)**: `integrations/bd_backend.py` + `src/lectura_bd.py`, usando el `kit_conexion_agentes_Nora` oficial del proyecto (mismo patrón que Lumen en producción). `id_evento` se verifica contra la BD real; el histórico se autocarga si no viene explícito en el payload. Import perezoso: sin `DATABASE_URL`/`psycopg`, el agente funciona exactamente igual que antes.
 - [x] **Interfaz de prueba reescrita (`app.py`, 12/07/2026)**: sustituye a `streamlit_app.py`; panel de Nota Bene con estilo propio (`mostrar_nota_bene`). Corregido un bug de renderizado: el HTML se construía con f-strings indentadas igual que el código Python, y Streamlit/CommonMark trata 4+ espacios al inicio de línea como bloque de código -- el panel se mostraba como texto plano en vez de renderizarse. Arreglado quitando la indentación línea a línea justo antes de `st.markdown()`.
-- [x] **`servidor.py` alineado al contrato de 4 bloques (12/07/2026)**: llegó de un merge con `id_evento` fijo a `None` (fallaría siempre) y aceptando un motor `"reglas"` que ya no existe. Ahora `id_evento` es obligatorio en el body, el único motor es `"llm"`, y acepta `bloques_a_actualizar`/`historial_anterior` opcionales.
+- [x] **`servidor.py` alineado al contrato de 4 bloques (actualizado 14/07/2026)**: acepta body flexible para el front. `id_evento` es opcional; el único motor es `"llm"`; acepta `texto`, `texto_briefing`, `contenido` o `datos.texto_briefing`, además de `bloques_a_actualizar`/`historial_anterior` opcionales.
 - [x] **Límite de tokens por minuto (TPM) del free tier de Groq, resuelto (12/07/2026)**: un `error 413 rate_limit_exceeded` (8.000 TPM) apareció al probar el modo actualización con histórico tras varias rondas sobre el mismo evento. Tres causas encontradas y corregidas: (1) el histórico local de sesión de `app.py` mandaba la lista completa de versiones acumuladas al LLM, ahora solo la última (`src/schemas.py::extraer_ultimo_estado`); (2) el ejemplo JSON completo del prompt de sistema se enviaba siempre, ahora se omite en llamadas de actualización (ya hay un ejemplo mejor: la última versión real); (3) la protección de bloques no actualizados se le pedía al LLM en el prompt ("cópialo tal cual"), ahora se hace en Python (`src/nucleo.py::_proteger_bloques_no_actualizados`), sin necesidad de mandarle esos bloques al LLM con la misma insistencia. Verificado end-to-end con Groq real, varias rondas de actualización sobre el mismo evento sin volver a saltar el límite.
 - [x] **Esquema ambiguo mostrado al LLM, corregido (12/07/2026)**: `ESQUEMA_SALIDA` (listas planas de nombres de campo, uso interno de `_fusionar_sobre_plantilla`) se enviaba tal cual al LLM como "la forma de tu respuesta" -- ambiguo, provocó que el modelo devolviera `evento`/`cliente` como arrays de valores posicionales en vez de objetos (JSON inválido, error 400). Nueva función `src/llm.py::_esquema_para_prompt` construye la forma real (objetos anidados) solo para lo que ve el LLM; `ESQUEMA_SALIDA` sigue igual para la fusión interna.
 - [ ] Pendiente, no técnico: pedirle a Nora la cadena `agente_readonly` y ponerla en `.env` — sin eso, lo de arriba está construido pero sin probar contra la BD real (sí probado el camino "sin BD disponible", que degrada con elegancia).
 - [ ] **Pendiente, sigue sin definir:** cómo invoca el backend a `ejecutar_agente(payload)` en sí (API REST / librería / otro) — la conexión a BD resuelve la lectura de estado, no esta decisión (ver sección 8.2). `servidor.py` es una propuesta de capa REST, no una decisión tomada por el equipo de backend.
 - [ ] Pendiente: decidir si `data/conocimiento/` se recupera (p. ej. para validar la salida del LLM contra listas conocidas) o se elimina definitivamente.
+# Nota actualizada 14/07/2026 - contrato HTTP
+
+`POST /autocompletar` ya no exige `id_evento` en el body. Si llega `id_evento`, Operis lo usa
+para intentar cargar historico del evento desde BD y fusionar datos; si no llega, procesa una
+extraccion inicial sin historico, pensada para pantallas independientes como Cliente o Espacio.
+El texto de entrada puede llegar como `texto`, `texto_briefing`, `contenido` o
+`datos.texto_briefing`. Si no llega ningun texto, devuelve `TEXTO_NO_RECIBIDO`.
