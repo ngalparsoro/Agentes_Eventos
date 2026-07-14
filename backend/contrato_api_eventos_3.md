@@ -77,9 +77,17 @@ No implementada en el backend (las listas vienen enteras: 40 eventos, 120 salas 
 
 ## 4. Estados de evento (los reales, tabla `estados`)
 
-`Borrador` · `Presupuestado` · `Pendiente de aprobación` · `Confirmado` · `En ejecución` · `Celebrado` · `Facturado` · `Cancelado`
+`Planificado` · `Reservado` · `Confirmado` · `Finalizado` · `Cancelado`
 
-La lista de la v2 (`pre-evento`, `en-curso`…) queda **obsoleta**. Los estados se referencian por su `id` (UUID) en `eventos.id_estado`; la descripción es para mostrar. Comparaciones de texto: **sin distinguir mayúsculas** (los agentes ya lo hacen así).
+La lista anterior de 8 estados (`Borrador`, `Presupuestado`, `Pendiente de aprobación`, `En ejecución`, `Celebrado`, `Facturado`, etc.) queda **obsoleta**. Los estados se referencian por su `id` (UUID) en `eventos.id_estado`; la descripción es para mostrar. Comparaciones de texto: **sin distinguir mayúsculas** (los agentes ya lo hacen así).
+
+Reglas de transición acordadas:
+
+- `Planificado`: se crea al pulsar `crear evento`.
+- `Reservado`: se activa al pulsar `Reservar lugar`.
+- `Confirmado`: requiere `confirmar lugar` y `confirmar presupuesto`.
+- `Finalizado`: se activa automáticamente el día posterior al evento.
+- `Cancelado`: se activa desde cualquier estado con `Cancelar evento`, siempre con doble validación.
 
 ---
 

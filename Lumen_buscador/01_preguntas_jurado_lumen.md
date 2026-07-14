@@ -64,7 +64,7 @@ Respuesta: Porque con `in` a secas, la palabra `"confirma"` (de `PALABRAS_ESCRIT
 
 **13. ¿Qué son `SINONIMOS_ESTADO_EVENTO` y por qué las claves tienen que coincidir literalmente con la BD?**
 
-Respuesta: Es un diccionario que mapea cada estado real de la tabla `estados` (por ejemplo `"Pendiente de aprobación"`, `"En ejecución"`) a una lista de formas coloquiales en que el usuario podría nombrarlo (`"pendiente"`, `"por aprobar"`, `"en curso"`, `"activo"`...). Las claves deben coincidir exactamente (acentos y mayúsculas incluidos) con `estados.descripcion` en la BD porque `eventos_por_estado()` compara por igualdad exacta. El código documenta que antes había 3 estados inventados de un dataset de referencia que nunca existieron en la BD real, lo que rompía silenciosamente las consultas por estado.
+Respuesta: Es un diccionario que mapea cada estado real de la tabla `estados` (por ejemplo `"Planificado"`, `"Reservado"`, `"Confirmado"`, `"Finalizado"` o `"Cancelado"`) a una lista de formas coloquiales en que el usuario podría nombrarlo (`"pre-evento"`, `"pre-reservado"`, `"aceptado"`, `"celebrado"`, `"anulado"`...). Las claves deben coincidir exactamente (acentos y mayúsculas incluidos) con `estados.descripcion` en la BD porque `eventos_por_estado()` compara por igualdad exacta. El código mantiene algunos nombres antiguos como sinónimos para que preguntas del prototipo o del equipo sigan funcionando, pero siempre resuelve contra los 5 estados reales.
 
 **14. ¿Cómo tolera Lumen errores tipográficos como "prendientes" en vez de "pendientes", sin generar falsos positivos entre palabras distintas?**
 
