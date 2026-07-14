@@ -534,6 +534,18 @@ Servidor HTTP fino para el frontend React: `GET /` (estado) y `POST /autocomplet
 `id_evento`, `bloques_a_actualizar` e `historial_anterior` son opcionales. Escucha en `http://localhost:5002` por defecto. No sustituye
 el contrato real (`ejecutar_agente(payload)`), es solo una capa HTTP encima.
 
+Para autocompletado desde pantallas concretas del front, el agente acepta:
+
+```json
+{
+  "texto": "contenido extraido del archivo",
+  "tipo_objetivo": "cliente",
+  "campos_objetivo": ["cliente", "empresa", "email", "telefono", "sector", "ciudad"]
+}
+```
+
+Tambien acepta `multipart/form-data` con un campo de archivo llamado `archivo`, `file`, `documento` o `upload`, mas `tipo_objetivo` y `campos_objetivo`. En pantallas como `cliente`, los campos no detectados se devuelven en `campos_no_detectados`, pero no generan `bloqueos_detectados`: el agente propone datos y la app valida antes de guardar.
+
 ```bash
 python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el coste
 ```
