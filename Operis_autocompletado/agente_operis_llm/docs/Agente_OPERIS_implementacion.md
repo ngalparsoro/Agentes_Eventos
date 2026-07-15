@@ -50,7 +50,7 @@ Documentación técnica completa (código, contratos, casos de prueba) en el pro
 - [x] **No escribe en la base de datos.** Solo devuelve un diccionario/JSON de propuesta.
 - [x] **No inventa ni deduce datos.** Lo que no aparece explícito en el texto se queda vacío (`""`/`[]`).
 - [x] **No escribe ni crea eventos en BD.** `id_evento` es opcional en la capa HTTP: si llega, se usa para histórico; si no llega, se devuelve una propuesta de extracción inicial sin histórico.
-- [x] **No hace OCR en PDFs escaneados** — depende de que el documento tenga capa de texto.
+- [x] **Hace OCR como fallback en PDFs escaneados** — primero intenta extraer capa de texto y, si sale vacia, procesa las primeras paginas con Tesseract.
 - [x] **No guarda ni carga el histórico por su cuenta.** Recibe `contexto.historial_anterior` ya cargado en el payload; quien lo guarda y se lo pasa es el backend, nunca el agente (`src/rag.py` sigue siendo un stub por este motivo).
 - [x] **No funciona sin `GROQ_API_KEY`.** Sin motor de reglas de respaldo, una clave ausente o el free tier agotado detienen la extracción por completo (antes, el motor de reglas seguía disponible sin coste).
 
@@ -152,7 +152,7 @@ Sigue siendo un agente **de un solo paso** (sin bucle de razonamiento tipo ReAct
 ```
 
 ### 4.3 Capa de percepción
-Antes de razonar, el documento (`.pdf`/`.docx`/`.txt`) se convierte a texto plano (`src/lectura_archivos.py`). La calidad de esa conversión determina el techo de la extracción — un PDF escaneado como imagen, sin capa de texto, llega casi vacío.
+Antes de razonar, el documento (`.pdf`/`.docx`/`.txt`) se convierte a texto plano (`src/lectura_archivos.py`). Si un PDF no tiene capa de texto, Operis usa OCR como fallback sobre las primeras paginas configuradas.
 
 ### 4.4 Mecanismos de fallback
 - **Campo no encontrado** → `""`/`[]`, nunca se inventa.
@@ -168,7 +168,7 @@ Antes de razonar, el documento (`.pdf`/`.docx`/`.txt`) se convierte a texto plan
 | Patrón de fallo | Síntoma observable | Causa probable | Posible corrección |
 |---|---|---|---|
 | Sin `GROQ_API_KEY` | El agente no procesa nada, en ningún caso | Ya no hay motor de reglas de respaldo | Definir la clave en `.env` |
-| PDF vacío | Formulario en blanco pese a documento con contenido | PDF escaneado (imagen), sin capa de texto | Pedir documento editable o alta manual |
+| PDF vacío tras OCR | Formulario en blanco pese a documento con contenido | Imagen de baja calidad, manuscrito o PDF protegido | Pedir documento editable o alta manual |
 | Cargo/empresa del ponente mal repartidos | P. ej. cargo="premio Nobel", empresa="Química 2024" (edge case real observado) | Prosa libre con una estructura poco habitual ("premio X de Y AAAA" en vez de "cargo de Empresa") | Revisión manual — el dato entero sigue disponible, solo mal repartido entre dos campos |
 | Free tier de Groq agotado (200.000 tokens/día) | Se detiene la extracción por completo | Sin motor de reglas de respaldo | Esperar al día siguiente o usar otra clave |
 | Un dato suelto (teléfono, email) sin ponente asociado claro | No se asigna automáticamente | Ambigüedad real en el texto | Revisión manual |

@@ -544,7 +544,7 @@ Para autocompletado desde pantallas concretas del front, el agente acepta:
 }
 ```
 
-Tambien acepta `multipart/form-data` con un campo de archivo llamado `archivo`, `file`, `documento` o `upload`, mas `tipo_objetivo` y `campos_objetivo`. Los archivos soportados son `.txt`, `.pdf` y `.docx`; los PDF deben tener capa de texto seleccionable, porque no se aplica OCR a documentos escaneados. En pantallas como `cliente`, los campos no detectados se devuelven en `campos_no_detectados`, pero no generan `bloqueos_detectados`: el agente propone datos y la app valida antes de guardar.
+Tambien acepta `multipart/form-data` con un campo de archivo llamado `archivo`, `file`, `documento` o `upload`, mas `tipo_objetivo` y `campos_objetivo`. Los archivos soportados son `.txt`, `.pdf` y `.docx`; si un PDF no tiene capa de texto seleccionable, se aplica OCR sobre las primeras paginas (`OPERIS_OCR_MAX_PAGES`, por defecto 8). En pantallas como `cliente`, los campos no detectados se devuelven en `campos_no_detectados`, pero no generan `bloqueos_detectados`: el agente propone datos y la app valida antes de guardar.
 
 ```bash
 python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el coste
@@ -559,7 +559,7 @@ python docs/estimacion_tokens.py   # hace 2 llamadas reales a Groq y mide el cos
 | Falta `GROQ_API_KEY` | Error controlado (`ValueError`) — ya no hay motor de reglas de respaldo |
 | Falta `id_evento`, o va vacío/`null` | Permitido: extracción inicial sin histórico del evento |
 | `bloques_a_actualizar` con un valor fuera de `BLOQUES_VALIDOS` | Error de validación explícito |
-| PDF escaneado sin capa de texto | Formulario en blanco — límite conocido, no hay OCR |
+| PDF escaneado sin capa de texto | Se aplica OCR como fallback sobre las primeras paginas (`OPERIS_OCR_MAX_PAGES`, por defecto 8) |
 | El LLM devuelve un JSON inválido | Error controlado (`ValueError`), nunca se "adivina" |
 | Free tier de Groq agotado (200.000 tokens/día) | Se detiene la extracción; sin motor de reglas de respaldo, hay que esperar al día siguiente |
 | Límite de tokens **por minuto** de Groq superado (8.000 TPM, `error 413 rate_limit_exceeded`) | Distinto del límite diario -- salta con prompts puntuales grandes (mucho histórico o un briefing muy largo), no por acumular llamadas. Mitigado (12/07/2026): solo se manda la última versión del histórico (no la lista completa), el ejemplo JSON del prompt se omite en llamadas de actualización, y el esquema mostrado al LLM ya no es ambiguo (ver sección 5). Con un briefing puntual muy largo aún puede saltar; no hay reintento automático. |

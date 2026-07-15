@@ -377,4 +377,4 @@ El backend :5004 responde `{"ok": false, "message": "Base de datos no disponible
 `POST /agentes/operis/autocompletar` acepta body flexible. `id_evento` ya no es obligatorio:
 si llega, Operis intenta usar historico del evento; si no llega, procesa una extraccion
 inicial sin historico, util para pantallas como Cliente o Espacio. El texto puede llegar en
-`texto`, `texto_briefing`, `contenido`, `datos.texto_briefing` o `multipart/form-data` con un archivo llamado `archivo`, `file`, `documento` o `upload`. Formatos soportados: `.txt`, `.pdf` y `.docx`; los PDF escaneados sin capa de texto no se extraen porque no hay OCR.
+`texto`, `texto_briefing`, `contenido`, `datos.texto_briefing` o `multipart/form-data` con un archivo llamado `archivo`, `file`, `documento` o `upload`. Formatos soportados: `.txt`, `.pdf` y `.docx`; si un PDF no tiene capa de texto, Operis activa OCR sobre las primeras paginas (`OPERIS_OCR_MAX_PAGES`, por defecto 8).
