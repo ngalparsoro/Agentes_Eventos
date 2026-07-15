@@ -64,7 +64,7 @@ Se añadió un parámetro de modo de actualización: `contexto.modo_actualizacio
 
 ## 6. Conexión a la base de datos real
 
-El 10/07/2026 se resolvió la conexión a la base de datos real (Neon Postgres). Se usó el `kit_conexion_agentes_Nora` oficial del proyecto, el mismo que usa Lumen en producción. El agente se conecta en modo solo lectura, con una lista blanca de ocho tablas (clientes, eventos, presupuestos, ponentes, ponencias, estados, salas, espacios) y la tabla `usuarios` excluida. La conexión se marca como `read_only` a nivel de Postgres, no solo por convención en el código.
+El 10/07/2026 se resolvió la conexión a la base de datos real (Neon Postgres). Se usó el `kit_conexion_agentes_Nora` oficial del proyecto, el mismo que usa Lumen en producción. El agente se conecta en modo solo lectura, con una lista blanca de siete tablas de negocio (clientes, eventos, presupuestos, ponentes, ponencias, salas, espacios) y la tabla `usuarios` excluida. El estado del evento se lee desde `eventos.estado`; no existe tabla `estados`. La conexión se marca como `read_only` a nivel de Postgres, no solo por convención en el código.
 
 El histórico ahora se autocarga desde la base de datos si no viene explícito en el payload. `src/lectura_bd.py` traduce el esquema real de la BD al esquema de salida de Operis, y expone `evento_existe(id_evento)` y `construir_historial_desde_bd(id_evento)`. `id_evento` se verifica de verdad contra la BD, no solo como cadena no vacía.
 

@@ -62,9 +62,9 @@ Respuesta: 1) Validación de entrada (`schemas.validar_entrada`). 2) Bloqueo dur
 
 Respuesta: Porque con `in` a secas, la palabra `"confirma"` (de `PALABRAS_ESCRITURA`) aparecía como subcadena dentro de `"confirmados"`, y una pregunta legítima de solo lectura como "¿qué eventos están confirmados?" se bloqueaba como si fuera una petición de escritura. Con `re.search(r"\b" + palabra + r"\b", texto)` solo coincide la palabra completa, y "confirma el pedido" se sigue detectando igual que antes. Es un bug real documentado en el propio código.
 
-**13. ¿Qué son `SINONIMOS_ESTADO_EVENTO` y por qué las claves tienen que coincidir literalmente con la BD?**
+**13. Que son `SINONIMOS_ESTADO_EVENTO` y por que las claves tienen que coincidir literalmente con la BD?**
 
-Respuesta: Es un diccionario que mapea cada estado real de la tabla `estados` (por ejemplo `"Planificado"`, `"Reservado"`, `"Confirmado"`, `"Finalizado"` o `"Cancelado"`) a una lista de formas coloquiales en que el usuario podría nombrarlo (`"pre-evento"`, `"pre-reservado"`, `"aceptado"`, `"celebrado"`, `"anulado"`...). Las claves deben coincidir exactamente (acentos y mayúsculas incluidos) con `estados.descripcion` en la BD porque `eventos_por_estado()` compara por igualdad exacta. El código mantiene algunos nombres antiguos como sinónimos para que preguntas del prototipo o del equipo sigan funcionando, pero siempre resuelve contra los 5 estados reales.
+Respuesta: Es un diccionario que mapea cada estado operativo real de `eventos.estado` (por ejemplo `"Planificado"`, `"Reservado"`, `"Confirmado"`, `"Finalizado"` o `"Cancelado"`) a una lista de formas coloquiales en que el usuario podria nombrarlo (`"pre-evento"`, `"pre-reservado"`, `"aceptado"`, `"celebrado"`, `"anulado"`...). Las claves deben coincidir con el catalogo textual que guarda la BD en `eventos.estado`. El codigo mantiene algunos nombres antiguos como sinonimos para que preguntas del prototipo o del equipo sigan funcionando, pero siempre resuelve contra los 5 estados reales.
 
 **14. ¿Cómo tolera Lumen errores tipográficos como "prendientes" en vez de "pendientes", sin generar falsos positivos entre palabras distintas?**
 
@@ -82,9 +82,9 @@ Respuesta: Porque los ids reales de la tabla `eventos` en la BD son UUID (ver `d
 
 Respuesta: `ejecutar_agente` corta con un bloqueo explícito: `"De que evento (id_evento) necesitas consultar esa informacion?"`, y añade `"falta id_evento para resolver la consulta"` a `bloqueos_detectados`. Es una regla determinista, anterior a cualquier intento de consulta a la BD: Lumen no adivina ni asume "el evento más reciente".
 
-**18. ¿Qué hace `_responder_consulta_transversal_eventos` cuando el usuario pregunta por un estado que no existe en la BD?**
+**18. Que hace `_responder_consulta_transversal_eventos` cuando el usuario pregunta por un estado que no existe en la BD?**
 
-Respuesta: Si la pregunta contiene alguna de las palabras clave de estado (`PALABRAS_TRANSVERSAL_ESTADO`) pero no coincide con ningún estado real vía `_detectar_estado_pedido`, no se lista todo por defecto: se responde explícitamente "No reconozco ese estado de evento..." y se adjunta la lista real de `estados_disponibles()`, para que el usuario pueda corregir. El comentario en el código explica que antes, sin esta comprobación con tolerancia a tildes, "en ejecución" (con tilde) no se reconocía y la pregunta caía a listar todos los eventos sin filtrar — un bug de UX real que se corrigió.
+Respuesta: Si la pregunta contiene alguna de las palabras clave de estado (`PALABRAS_TRANSVERSAL_ESTADO`) pero no coincide con ningun estado real via `_detectar_estado_pedido`, no se lista todo por defecto: se responde explicitamente `No reconozco ese estado de evento...` y se adjunta la lista real de `estados_disponibles()`. Esa lista sale del catalogo canonico de 5 estados y de cualquier valor extra detectado en `eventos.estado`, para que el usuario pueda corregir sin que Lumen invente estados.
 
 ---
 

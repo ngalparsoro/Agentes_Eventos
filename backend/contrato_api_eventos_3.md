@@ -75,33 +75,33 @@ No implementada en el backend (las listas vienen enteras: 40 eventos, 120 salas 
 
 ---
 
-## 4. Estados de evento (los reales, tabla `estados`)
+## 4. Estados de evento (catalogo operativo en `eventos.estado`)
 
-`Planificado` · `Reservado` · `Confirmado` · `Finalizado` · `Cancelado`
+`Planificado` - `Reservado` - `Confirmado` - `Finalizado` - `Cancelado`
 
-La lista anterior de 8 estados (`Borrador`, `Presupuestado`, `Pendiente de aprobación`, `En ejecución`, `Celebrado`, `Facturado`, etc.) queda **obsoleta**. Los estados se referencian por su `id` (UUID) en `eventos.id_estado`; la descripción es para mostrar. Comparaciones de texto: **sin distinguir mayúsculas** (los agentes ya lo hacen así).
+La lista anterior de 8 estados (`Borrador`, `Presupuestado`, `Pendiente de aprobacion`, `En ejecucion`, `Celebrado`, `Facturado`, etc.) queda **obsoleta**. Tras el ajuste de Prisma del 15/07/2026 ya no existe la tabla `estados` ni el campo `eventos.id_estado`: el estado operativo se guarda directamente como texto en `eventos.estado`. Comparaciones de texto: **sin distinguir mayusculas** y normalizando espacios cuando aplique.
 
-Reglas de transición acordadas:
+Reglas de transicion acordadas:
 
 - `Planificado`: se crea al pulsar `crear evento`.
 - `Reservado`: se activa al pulsar `Reservar lugar`.
 - `Confirmado`: requiere `confirmar lugar` y `confirmar presupuesto`.
-- `Finalizado`: se activa automáticamente el día posterior al evento.
-- `Cancelado`: se activa desde cualquier estado con `Cancelar evento`, siempre con doble validación.
+- `Finalizado`: se activa automaticamente el dia posterior al evento.
+- `Cancelado`: se activa desde cualquier estado con `Cancelar evento`, siempre con doble validacion.
 
 ---
 
-## 5. Modelo de datos real (9 tablas en Neon)
+## 5. Modelo de datos real (8 tablas de app en Neon)
 
-- **eventos** — nombre, ciudad, lugar_confirmado, fechas, nº personas, tipo, nota + FKs: `id_cliente`, `id_estado`, `id_presupuesto`, `id_sala`, `id_ponencia`.
-- **clientes** — cliente (nombre persona), email, teléfono, empresa, sector, ciudad.
-- **espacios** — nombre, ciudad, dirección, aforo, contacto. / **salas** — nombre, tipo, capacidad, `id_espacio`.
-- **ponentes** — nombre, identificación, email, sector, teléfono, foto/cv (links), empresa, cargo.
-- **ponencias** — hotel, transporte (notas y horarios), horario ponencia, check-in, estado del ponente, links (presentación, billetes), tipo, `id_ponente`.
-- **presupuestos** — estado, total, partidas (ubicación/catering/audiovisuales/otros con precio y nota), observaciones.
-- **estados** — catálogo de la sección 4. / **usuarios** — login y rol (vetada para agentes).
+- **eventos** - nombre, ciudad, lugar_confirmado, fechas, numero de personas, tipo, nota, `estado` textual + FKs: `id_cliente`, `id_presupuesto`, `id_sala`, `id_ponencia`.
+- **clientes** - cliente (nombre persona), email, telefono, empresa, sector, ciudad.
+- **espacios** - nombre, ciudad, direccion, aforo, contacto. / **salas** - nombre, tipo, capacidad, `id_espacio`.
+- **ponentes** - nombre, identificacion, email, sector, telefono, foto/cv (links), empresa, cargo.
+- **ponencias** - hotel, transporte (notas y horarios), horario ponencia, check-in, estado del ponente, links (presentacion, billetes), tipo, `id_ponente`.
+- **presupuestos** - estado, total, partidas (ubicacion/catering/audiovisuales/otros con precio y nota), observaciones.
+- **usuarios** - login y rol (vetada para agentes).
 
-⚠️ **Dos problemas de modelo/datos reconocidos (bloquean funcionalidades de agentes y front):**
+**Dos problemas de modelo/datos reconocidos (bloquean funcionalidades de agentes y front):**
 1. **La relación evento↔ponente quedó invertida**: `eventos.id_ponencia` apunta a UNA ponencia → un evento solo puede tener **un** ponente. El acuerdo original (y `evento_ponente.csv`, con los 40 vínculos) es **muchos-a-muchos**. Pedido a backend/BD: mover la FK a `ponencias.id_evento` (o tabla puente) y recargar.
 2. **`eventos.id_sala` e `id_ponencia` están a NULL en los 40 eventos** (la carga no los enlazó). Hasta que se pueblen, nadie puede responder "¿qué ponentes/sala tiene este evento?".
 3. (Para el bot de Telegram) **falta `telegram_user_id`** en `ponentes` — sin ese campo no se puede saber qué ponente escribe.

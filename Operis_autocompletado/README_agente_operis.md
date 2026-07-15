@@ -371,10 +371,10 @@ La carpeta `data/conocimiento/` contiene catálogos heredados del motor de regla
 
 ```text
 clientes, eventos, presupuestos, ponentes,
-ponencias, estados, salas, espacios
+ponencias, salas, espacios
 ```
 
-La tabla `usuarios` queda fuera de alcance. Las conexiones PostgreSQL se marcan como `read_only`. La integración es opcional y usa importación perezosa: sin `DATABASE_URL` o sin `psycopg`, la extracción sigue funcionando, pero sin histórico ni validación real del identificador.
+La tabla `usuarios` queda fuera de alcance. El estado del evento se lee desde `eventos.estado`; no existe tabla `estados`. Las conexiones PostgreSQL se marcan como `read_only`. La integración es opcional y usa importación perezosa: sin `DATABASE_URL` o sin `psycopg`, la extracción sigue funcionando, pero sin histórico ni validación real del identificador.
 
 ### Archivos
 

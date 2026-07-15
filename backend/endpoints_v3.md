@@ -38,7 +38,7 @@ Sobre de respuesta: `{ ok, msg, filters, data }`.
 | Ruta | Para quién | Por qué |
 |---|---|---|
 | `GET/POST /presupuestos` (+`/{id}`) | Front (dashboard presupuesto) | Modelo existe, ruta no |
-| `GET /estados` | Front (desplegables de estado) | Modelo existe, ruta no |
+| Validar transiciones de estado (`eventos.estado`) | Front + Backend | No hay tabla `estados`; el catalogo operativo son 5 valores textuales |
 | `GET /ponentes/by-telegram/{telegram_user_id}` | Agente Telegram | Identificar al ponente que escribe (requiere además la columna en BD) |
 | Aceptar `Authorization: Bearer` además de cookie | Todos los agentes | Hoy los agentes no pueden autenticarse (middleware solo lee cookie) |
 | `POST /borradores`, `POST /bloqueos` + aprobar/rechazar | Agentes (fase 2) | Persistir propuestas de la IA con validación humana |
@@ -89,7 +89,7 @@ Réplica del contrato v2 con datos falsos. Útil para maquetar pantallas cuya ru
 
 ## 3. Acceso a datos de los agentes (no es HTTP, pero es parte del mapa)
 
-Los agentes leen **Neon Postgres** directamente con el rol `agente_readonly`: solo `SELECT` sobre `clientes, espacios, estados, eventos, ponencias, ponentes, presupuestos, salas`; sin acceso a `usuarios`; escritura imposible a nivel de BD. Configuración: `DATABASE_URL` en el `.env` de cada agente (pedir la credencial a Nora — **nunca** usar la cadena del owner ni subirla a git). Patrón de código: `lumen_agente_04/integrations/bd_backend.py`.
+Los agentes leen **Neon Postgres** directamente con el rol `agente_readonly`: solo `SELECT` sobre `clientes, espacios, eventos, ponencias, ponentes, presupuestos, salas`; sin acceso a `usuarios`; escritura imposible a nivel de BD. Desde el ajuste de Prisma del 15/07/2026 no existe tabla `estados`: el estado del evento se consulta en `eventos.estado`. Configuracion: `DATABASE_URL` en el `.env` de cada agente (pedir la credencial a Nora - **nunca** usar la cadena del owner ni subirla a git). Patron de codigo: `lumen_agente_04/integrations/db_backend.py`.
 
 ---
 

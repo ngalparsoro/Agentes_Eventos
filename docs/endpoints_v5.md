@@ -16,6 +16,9 @@ campo de texto. **Actualizado 14/07/2026**: Operis usa motor único `"llm"` y bo
 `id_evento` es opcional: si llega, permite usar histórico del evento; si no llega, procesa
 una extracción inicial sin histórico para pantallas como Cliente o Espacio.
 
+
+**Aviso estados:** actualizado 15/07/2026. Ya no hay tabla `public.estados` ni `eventos.id_estado`; el catalogo operativo vive como texto en `eventos.estado` con estos 5 valores: `Planificado`, `Reservado`, `Confirmado`, `Finalizado`, `Cancelado`. Lumen, Hermes y Operis leen ese campo directamente.
+
 Leyenda: ✅ implementado y probado · 🔨 implementado, no probado · ⚠️ pendiente · 🧩 stub (forma real, datos de ejemplo)
 
 ---
@@ -168,7 +171,7 @@ están recibidos e integrados**: Lumen, Operis, Jano, Vigil, Hermes y Garum.
 | Entorno | URL base | Notas |
 |---|---|---|
 | Local | `http://localhost:5003` | `./arrancar_todo.sh` |
-| Nube (Render) | `https://backstage-agentes.onrender.com` ¹ | contenedor Docker único (`render.yaml`); plan free: **se duerme a los 15 min** — despertar con `GET /salud` (~1 min) antes de la demo |
+| Nube (Render) | `https://despliegue-agentes.onrender.com` ¹ | contenedor Docker único (`render.yaml`); plan free: **se duerme a los 15 min** — despertar con `GET /salud` (~1 min) antes de la demo |
 
 ¹ Confirmar el sufijo exacto al crear el Blueprint (Render añade uno si el nombre está cogido).
 Limitaciones de la imagen en nube: Vigil sirve su **histórico** pero no el scrape en vivo (sin
